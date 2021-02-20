@@ -1,0 +1,494 @@
+package com.ayoungbear.distbtsync.redis.lock;
+
+import java.lang.ref.WeakReference;
+import java.util.WeakHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+
+/**
+ * 基于 redis 的可重入分布式锁.
+ * 可通过 {@link #getSharedLock(String, RedisLockCommands)} 方式来获取使用
+ * 共享阻塞队列的公平锁对象, 这里的公平指的是相对公平, 只有使用相同阻塞队列的线程
+ * 之间会保持先来后到的加锁顺序, 使用不同队列或者处于不同服务节点上的锁对象之间是
+ * 处于竞争关系的.
+ * 
+ * @author yangzexiong
+ * @see RedisLockCommands
+ */
+public class RedisBasedLock extends AbstractRedisLock {
+
+    private final Sync sync;
+    private final boolean fair;
+    private volatile SubWorker subWorker;
+
+    /**
+     * 记录当前对象中有多少线程在自旋竞争锁
+     */
+    private AtomicLong competitor = new AtomicLong(0);
+
+    public RedisBasedLock(String key, RedisLockCommands commands) {
+        this(key, commands, true);
+    }
+
+    public RedisBasedLock(String key, RedisLockCommands commands, boolean fair) {
+        super(key, commands);
+        this.sync = Sync.newInstance();
+        this.fair = fair;
+    }
+
+    private RedisBasedLock(String key, RedisLockCommands commands, Sync sync) {
+        super(key, commands);
+        this.sync = sync;
+        this.fair = true;
+    }
+
+    /**
+     * 创建基于 redis 的分布式锁, 所有根据此方法创建的使用相同 {@code key} 的锁对象,
+     * 都使用相同的共享阻塞队列, 并且锁为公平锁.
+     * 
+     * @see Sync#syncQueueCache
+     * @param key
+     * @param commands
+     * @return
+     */
+    public static RedisBasedLock newSharedLock(String key, RedisLockCommands commands) {
+        return new RedisBasedLock(key, commands, Sync.newShared(key));
+    }
+
+    /**
+     * 获取已缓存的共享阻塞队列的长度
+     * @return
+     */
+    public static int getSharedSyncCacheSize() {
+        return Sync.syncQueueCache.size();
+    }
+
+    @Override
+    public void lock() {
+        try {
+            spinLock((lock) -> lock.tryLock(), false, NOT_WAIT_TIME);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Override
+    public void lockInterruptibly() throws InterruptedException {
+        if (Thread.interrupted()) {
+            throw new InterruptedException();
+        }
+        spinLock((lock) -> lock.tryLock(), true, NOT_WAIT_TIME);
+    }
+
+    @Override
+    public boolean tryLock() {
+        return tryLock(UNLIMIT_LEASE_TIME);
+    }
+
+    @Override
+    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+        if (time <= 0L) {
+            return false;
+        }
+        return spinLock((lock) -> lock.tryLock(), true, unit.toNanos(time));
+    }
+
+    @Override
+    public void unlock() throws IllegalMonitorStateException {
+        if (onceLocked()) {
+            // 这里解锁时如果锁已过期并且被他人上锁了会出现解锁失败的情况
+            releaseLock();
+        } else {
+            throw new IllegalMonitorStateException("Not locked by current thread");
+        }
+    }
+
+    @Override
+    public void lockTimed(long leaseTime, TimeUnit unit) {
+        validateLeaseTime(leaseTime);
+        try {
+            spinLock((lock) -> lock.tryLockTimed(leaseTime, unit), false, NOT_WAIT_TIME);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Override
+    public boolean tryLockTimed(long leaseTime, TimeUnit unit) {
+        validateLeaseTime(leaseTime);
+        return tryLock(unit.toMillis(leaseTime));
+    }
+
+    @Override
+    public boolean tryLockTimed(long time, long leaseTime, TimeUnit unit) throws InterruptedException {
+        validateLeaseTime(leaseTime);
+        if (time <= 0L) {
+            return false;
+        }
+        return spinLock((lock) -> lock.tryLockTimed(leaseTime, unit), true, unit.toNanos(time));
+    }
+
+    @Override
+    public boolean renewLeaseTime(long leaseTime, TimeUnit unit) {
+        validateLeaseTime(leaseTime);
+        if (onceLocked()) {
+            return doExpired(getSourceIdentifier(), unit.toMillis(leaseTime));
+        }
+        return false;
+    }
+
+    @Override
+    public boolean releaseLock() {
+        if (onceLocked()) {
+            String identifier = getSourceIdentifier();
+            if (identifier != null) {
+                int holdCount = doTryRelease(identifier);
+                boolean releaseSuccessful = holdCount >= 0;
+                if (holdCount <= 0) {
+                    removeIdentifier();
+                    // 解锁后唤醒其他等待者争用锁
+                    sync.signal();
+                }
+                return releaseSuccessful;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHeldLock() {
+        boolean result = false;
+        if (onceLocked()) {
+            result = isAcquired(getSourceIdentifier());
+        }
+        if (!result) {
+            removeIdentifier();
+        }
+        return result;
+    }
+
+    @Override
+    public int getHoldCount() {
+        String identifier = getSourceIdentifier();
+        if (identifier != null) {
+            return doGetHoldCount(getSourceIdentifier());
+        }
+        return 0;
+    }
+
+    private final boolean spinLock(RedisLockOperation operation, boolean interruptible, long timeoutNanos)
+            throws InterruptedException {
+        final long deadline = System.nanoTime() + timeoutNanos;
+        // 是否超时可中断模式
+        boolean timeoutMode = timeoutNanos > 0;
+
+        // 获取加锁资格, 公平模式下只有一个能获取成功并执行加锁(或者是锁持有者可重入), 非公平模式下则无需获取直接竞争锁
+        boolean canSpinLock = acquire(interruptible, timeoutNanos);
+        if (canSpinLock) {
+            // 开始自旋加锁
+            competitor.incrementAndGet();
+            try {
+                for (;;) {
+                    if (operation.doLock(this)) {
+                        return true;
+                    }
+
+                    // 锁的剩余过期时间, ttl 小于0表示锁没有设置过期时间
+                    long nanosTtl = TimeUnit.MILLISECONDS.toNanos(getTtl());
+
+                    if (timeoutMode) {
+                        long nanosTimed = deadline - System.nanoTime();
+                        // 超时
+                        if (nanosTimed <= 0L) {
+                            return false;
+                        }
+                        // 如果锁无过期时间, 那么阻塞的时间以剩余的超时时间为准
+                        if (nanosTtl < 0 || nanosTimed < nanosTtl) {
+                            nanosTtl = nanosTimed;
+                        }
+                    }
+
+                    // 当剩余时间过小则继续自旋不再阻塞
+                    if (nanosTtl < 0 || nanosTtl > spinForBlockTimeoutThreshold) {
+                        activeSubWorker();
+                        sync.await(interruptible, nanosTtl);
+                    }
+
+                    if (interruptible && Thread.interrupted()) {
+                        throw new InterruptedException();
+                    }
+                }
+            } finally {
+                releaseIfNecessary();
+                if (competitor.decrementAndGet() == 0 && !sync.hasQueuedThreads()) {
+                    // 如果没有其他线程需要加锁那么停止订阅者的工作
+                    terminateSubWorker();
+                }
+            }
+        }
+        return false;
+    }
+
+    private final boolean tryLock(long leaseTimeMillis) {
+        String identifier = getIdentifier();
+        boolean acquireSuccessful = doTryAcquire(identifier, leaseTimeMillis);
+        if (acquireSuccessful) {
+            setSourceIdentifier(identifier);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 请求争用锁的互斥资源, 公平模式下只有一个线程能争用分布式锁
+     * @param interruptible
+     * @param timeoutNanos
+     * @return
+     * @throws InterruptedException
+     */
+    private final boolean acquire(boolean interruptible, long timeoutNanos) throws InterruptedException {
+        boolean result = false;
+        if (fair) {
+            if (isHeldLock()) {
+                // 如果当前线程已持有锁, 则直接允许继续加锁, 可重入
+                return true;
+
+            } else {
+                if (interruptible) {
+                    if (timeoutNanos > 0) {
+                        // 超时模式
+                        result = sync.acquire(timeoutNanos);
+                    } else {
+                        // 可中断阻塞模式
+                        result = sync.acquireInterruptibly();
+                    }
+                    if (!result && Thread.interrupted()) {
+                        throw new InterruptedException();
+                    }
+
+                } else {
+                    // 阻塞模式
+                    result = sync.acquire();
+                }
+            }
+        } else {
+            result = true;
+        }
+        return result;
+    }
+
+    /**
+     * 释放互斥资源, 让下个线程争用锁(如果有)
+     */
+    private final void releaseIfNecessary() {
+        if (fair) {
+            sync.release();
+        }
+    }
+
+    /**
+     * 启动订阅者, 监听解锁信息
+     */
+    private final void activeSubWorker() {
+        if (subWorker == null) {
+            synchronized (this) {
+                if (subWorker == null) {
+                    this.subWorker = new SubWorker();
+                    this.subWorker.start();
+                }
+            }
+        }
+    }
+
+    /**
+     * 终止订阅工作
+     */
+    private final void terminateSubWorker() {
+        if (subWorker != null) {
+            synchronized (this) {
+                if (subWorker != null) {
+                    subWorker.interrupt();
+                    commands.unsubscribe();
+                    this.subWorker = null;
+                }
+            }
+        }
+    }
+
+    /**
+     * 订阅解锁信息工作线程
+     * 
+     * @author yangzexiong
+     */
+    private class SubWorker extends Thread {
+        @Override
+        public void run() {
+            for (;;) {
+                commands.subscribe(channel, this::onMessageRun);
+                if (Thread.interrupted()) {
+                    break;
+                }
+            }
+        }
+
+        private void onMessageRun(String message) {
+            boolean interrupted = Thread.currentThread().isInterrupted();
+            if (getLockName().equals(message) || interrupted) {
+                if (interrupted) {
+                    commands.unsubscribe();
+                }
+                // 唤醒等待线程竞争锁
+                sync.signal();
+            }
+        }
+    }
+
+    /**
+     * 基于 {@link AbstractQueuedSynchronizer} 实现的阻塞队列, 作为内部同步器
+     * 
+     * @author yangzexiong
+     */
+    protected static class Sync extends AbstractQueuedSynchronizer {
+
+        private static final long serialVersionUID = -5447636560573717767L;
+
+        /**
+         * 共享阻塞队列缓存, 利用 {@link WeakHashMap} 和 {@link WeakReference} 弱引用的特性,
+         * 在内存不足时将无用的共享队列清除, 这里将回收功能交给了 GC.
+         * 共享阻塞队列是公平模式的, 这么做的目的是为了减少阻塞队列对象的创建和无用的操作, 因为只能有一个对象加锁成功.
+         * 可通过 {@link #getSharedSync(String)} 来获取共享阻塞队列.
+         */
+        private static final WeakHashMap<Sync, WeakReference<Sync>> syncQueueCache = new WeakHashMap<>(256);
+
+        private final Semaphore semaphore;
+
+        private final String key;
+
+        private final boolean shared;
+
+        public Sync(String key, boolean shared) {
+            this.key = key;
+            this.shared = shared;
+            this.semaphore = new Semaphore(0);
+        }
+
+        @Override
+        protected final boolean tryAcquire(int acquires) {
+            int c = getState();
+            if (c == 0) {
+                if (compareAndSetState(0, acquires)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        protected final boolean tryRelease(int releases) {
+            setState(0);
+            return true;
+        }
+
+        public boolean acquire() {
+            acquire(1);
+            return true;
+        }
+
+        public boolean acquireInterruptibly() {
+            try {
+                acquireInterruptibly(1);
+                return true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        public boolean acquire(long timeoutNanos) {
+            try {
+                return tryAcquireNanos(1, timeoutNanos);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        public boolean release() {
+            return release(1);
+        }
+        
+        public void await(boolean interruptible, long timeoutNanos) {
+            try {
+                if (interruptible) {
+                    if (timeoutNanos > 0) {
+                        semaphore.tryAcquire(timeoutNanos, TimeUnit.NANOSECONDS);
+                    } else {
+                        semaphore.acquire();
+                    }
+                } else {
+                    semaphore.acquireUninterruptibly();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        public void signal() {
+            int waiterNum = semaphore.getQueueLength();
+            semaphore.release(waiterNum);
+        }
+
+        @Override
+        public int hashCode() {
+            return key.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof Sync)) {
+                return false;
+            }
+            Sync other = (Sync) obj;
+            if (this.shared && other.shared) {
+                return this.key.equals(other.key);
+            }
+            return this == other;
+        }
+        
+        public static Sync newInstance() {
+            Sync sync = new Sync(null, false);
+            return sync;
+        }
+
+        /**
+         * 根据给定的 {@code key} 获取对应的共享阻塞队列 {@link Sync}, 队列是属于公平模式加锁类型的
+         * @param key the name of {@link RedisBasedLock}
+         * @return the shared blocking queue.
+         */
+        public static Sync newShared(String key) {
+            Sync sync = getRedisSyncLockQueueFromCache(key);
+            if (sync == null) {
+                synchronized (syncQueueCache) {
+                    sync = getRedisSyncLockQueueFromCache(key);
+                    if (sync == null) {
+                        sync = new Sync(key, true);
+                        syncQueueCache.put(sync, new WeakReference<Sync>(sync));
+                    }
+                }
+            }
+            return sync;
+        }
+
+        private static Sync getRedisSyncLockQueueFromCache(String key) {
+            WeakReference<Sync> syncRef = syncQueueCache.get(new Sync(key, true));
+            return syncRef == null ? null : syncRef.get();
+        }
+
+    }
+
+}
