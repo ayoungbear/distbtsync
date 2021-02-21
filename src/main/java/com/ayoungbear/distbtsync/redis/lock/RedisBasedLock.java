@@ -106,10 +106,12 @@ public class RedisBasedLock extends AbstractRedisLock {
 
     @Override
     public void unlock() throws IllegalMonitorStateException {
+        boolean result = false;
         if (onceLocked()) {
             // 这里解锁时如果锁已过期并且被他人上锁了会出现解锁失败的情况
-            releaseLock();
-        } else {
+            result = releaseLock();
+        }
+        if (!result) {
             throw new IllegalMonitorStateException("Not locked by current thread");
         }
     }
