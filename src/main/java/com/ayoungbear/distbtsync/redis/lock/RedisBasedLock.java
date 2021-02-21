@@ -195,6 +195,21 @@ public class RedisBasedLock extends AbstractRedisLock {
         return competitor.get();
     }
 
+    /**
+     * 自旋争用分布式锁, 是所有阻塞或者超时性质加锁方法的基础方法.
+     * 如果是公平模式那么所有线程会先获取争用锁的资格, 只有一个线程能获取成功,
+     * 然后与其他服务节点或者对象的线程争用分布式锁.
+     * 当加锁失败时会进入阻塞, 阻塞的时间与锁的失效时间(如果有)或者超时时间有关,
+     * 也有可能是持续阻塞的状态(如果锁没有失效时间), 直到收到了解锁的通知信息,
+     * 然后重新尝试加锁.
+     * 自旋加锁持续到加锁成功, 或者超时, 或者被中断.
+     * 
+     * @param operation
+     * @param interruptible
+     * @param timeoutNanos
+     * @return
+     * @throws InterruptedException
+     */
     private final boolean spinLock(RedisLockOperation operation, boolean interruptible, long timeoutNanos)
             throws InterruptedException {
         final long deadline = System.nanoTime() + timeoutNanos;
@@ -312,7 +327,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         if (subWorker == null) {
             synchronized (this) {
                 if (subWorker == null) {
-                    this.subWorker = new SubWorker(this.sync);
+                    this.subWorker = new SubWorker();
                     this.subWorker.start();
                 }
             }
@@ -341,12 +356,6 @@ public class RedisBasedLock extends AbstractRedisLock {
      */
     private class SubWorker extends Thread {
 
-        private WeakReference<Sync> syncReference;
-
-        public SubWorker(Sync sync) {
-            this.syncReference = new WeakReference<Sync>(sync);
-        }
-
         @Override
         public void run() {
             for (;;) {
@@ -358,12 +367,11 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         private void onMessageRun(String message) {
-            Sync sync = syncReference.get();
-            if (Thread.interrupted() || sync == null) {
+            if (Thread.interrupted()) {
                 Thread.currentThread().interrupt();
                 commands.unsubscribe();
             }
-            if (getLockName().equals(message) && sync != null) {
+            if (getLockName().equals(message)) {
                 // 唤醒等待线程竞争锁
                 sync.signal();
             }
@@ -416,11 +424,19 @@ public class RedisBasedLock extends AbstractRedisLock {
             return true;
         }
 
+        /**
+         * 阻塞模式下获取争用锁的资格
+         * @return
+         */
         public boolean acquire() {
             acquire(1);
             return true;
         }
 
+        /**
+         * 可中断模式下获取争用锁的资格
+         * @return
+         */
         public boolean acquireInterruptibly() {
             try {
                 acquireInterruptibly(1);
@@ -431,6 +447,11 @@ public class RedisBasedLock extends AbstractRedisLock {
             }
         }
 
+        /**
+         * 超时模式下获取争用锁的资格
+         * @param timeoutNanos
+         * @return
+         */
         public boolean acquire(long timeoutNanos) {
             try {
                 return tryAcquireNanos(1, timeoutNanos);
@@ -440,6 +461,10 @@ public class RedisBasedLock extends AbstractRedisLock {
             }
         }
 
+        /**
+         * 获取到分布式锁后释放争用锁资格, 让下一等待线程争用
+         * @return
+         */
         public boolean release() {
             return release(1);
         }
