@@ -403,7 +403,7 @@ public class RedisBasedLock extends AbstractRedisLock {
 
         private final boolean shared;
 
-        public Sync(String key, boolean shared) {
+        private Sync(String key, boolean shared) {
             this.key = key;
             this.shared = shared;
             this.semaphore = new Semaphore(0, false);
