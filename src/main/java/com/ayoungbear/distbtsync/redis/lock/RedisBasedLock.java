@@ -4,15 +4,13 @@ import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * 基于 redis 的可重入分布式锁.
  * 可通过 {@link #getSharedLock(String, RedisLockCommands)} 方式来获取使用
- * 共享阻塞队列的公平锁对象, 这里的公平指的是相对公平, 只有使用相同阻塞队列的线程
- * 之间会保持先来后到的加锁顺序, 使用不同队列或者处于不同服务节点上的锁对象之间是
- * 处于竞争关系的.
+ * 共享阻塞队列的公平锁对象.
  * 
  * @author yangzexiong
  * @see RedisLockCommands
@@ -20,13 +18,24 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 public class RedisBasedLock extends AbstractRedisLock {
 
     private final Sync sync;
+
+    /**
+     * 是否公平锁模式.
+     * 这里的公平指的是相对公平, 只有使用相同阻塞队列的线程
+     * 之间会保持先来后到的加锁顺序, 使用不同队列或者处于不同服务节点上的锁对象之间是
+     * 处于竞争关系的.
+     */
     private final boolean fair;
+
+    /**
+     * 解锁信息订阅工作线程, 如果已没有线程使用分布式锁会被回收
+     */
     private volatile SubWorker subWorker;
 
     /**
      * 记录当前对象中有多少线程在自旋竞争锁
      */
-    private AtomicLong competitor = new AtomicLong(0);
+    private AtomicInteger competitor = new AtomicInteger(0);
 
     public RedisBasedLock(String key, RedisLockCommands commands) {
         this(key, commands, true);
@@ -178,6 +187,14 @@ public class RedisBasedLock extends AbstractRedisLock {
         return 0;
     }
 
+    /**
+     * 获取当前对象中自旋竞争锁的线程数
+     * @return
+     */
+    public int getCompetitorCount(){
+        return competitor.get();
+    }
+
     private final boolean spinLock(RedisLockOperation operation, boolean interruptible, long timeoutNanos)
             throws InterruptedException {
         final long deadline = System.nanoTime() + timeoutNanos;
@@ -221,11 +238,11 @@ public class RedisBasedLock extends AbstractRedisLock {
                     }
                 }
             } finally {
-                releaseIfNecessary();
                 if (competitor.decrementAndGet() == 0 && !sync.hasQueuedThreads()) {
                     // 如果没有其他线程需要加锁那么停止订阅者的工作
                     terminateSubWorker();
                 }
+                releaseIfNecessary();
             }
         }
         return false;
@@ -295,7 +312,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         if (subWorker == null) {
             synchronized (this) {
                 if (subWorker == null) {
-                    this.subWorker = new SubWorker();
+                    this.subWorker = new SubWorker(this.sync);
                     this.subWorker.start();
                 }
             }
@@ -323,6 +340,13 @@ public class RedisBasedLock extends AbstractRedisLock {
      * @author yangzexiong
      */
     private class SubWorker extends Thread {
+
+        private WeakReference<Sync> syncReference;
+
+        public SubWorker(Sync sync) {
+            this.syncReference = new WeakReference<Sync>(sync);
+        }
+
         @Override
         public void run() {
             for (;;) {
@@ -334,11 +358,12 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         private void onMessageRun(String message) {
-            boolean interrupted = Thread.currentThread().isInterrupted();
-            if (getLockName().equals(message) || interrupted) {
-                if (interrupted) {
-                    commands.unsubscribe();
-                }
+            Sync sync = syncReference.get();
+            if (Thread.interrupted() || sync == null) {
+                Thread.currentThread().interrupt();
+                commands.unsubscribe();
+            }
+            if (getLockName().equals(message) && sync != null) {
                 // 唤醒等待线程竞争锁
                 sync.signal();
             }
@@ -371,14 +396,14 @@ public class RedisBasedLock extends AbstractRedisLock {
         public Sync(String key, boolean shared) {
             this.key = key;
             this.shared = shared;
-            this.semaphore = new Semaphore(0);
+            this.semaphore = new Semaphore(0, false);
         }
 
         @Override
         protected final boolean tryAcquire(int acquires) {
             int c = getState();
             if (c == 0) {
-                if (compareAndSetState(0, acquires)) {
+                if (!hasQueuedPredecessors() && compareAndSetState(0, acquires)) {
                     return true;
                 }
             }
@@ -419,6 +444,11 @@ public class RedisBasedLock extends AbstractRedisLock {
             return release(1);
         }
         
+        /**
+         * 等待解锁信息, 或者超时/被中断
+         * @param interruptible
+         * @param timeoutNanos
+         */
         public void await(boolean interruptible, long timeoutNanos) {
             try {
                 if (interruptible) {
@@ -435,9 +465,19 @@ public class RedisBasedLock extends AbstractRedisLock {
             }
         }
 
+        /**
+         * 唤醒线程争用锁
+         */
         public void signal() {
-            int waiterNum = semaphore.getQueueLength();
-            semaphore.release(waiterNum);
+            semaphore.release(1);
+        }
+
+        /**
+         * 唤醒 {@code num} 个等待线程争用锁
+         * @param num
+         */
+        public void signal(int num) {
+            semaphore.release(num);
         }
 
         @Override
