@@ -61,7 +61,7 @@ public class SecondKillTest extends BaseRedisTest {
     }
 
     /**
-     * 模拟测试秒杀商品场景, 配置原因只能模拟有限的并发场景.
+     * 模拟测试秒杀单个商品场景, 配置原因只能模拟简单的有限的并发场景.
      * 该测试模拟的是后台并发处理秒杀请求的情况, 前端的限流分流场景不在考虑范围内.
      * 
      * <p>分布式锁的阻塞队列本身提供了缓冲, 避免大量请求消耗资源导致服务崩溃.
@@ -132,7 +132,8 @@ public class SecondKillTest extends BaseRedisTest {
     
     /**
      * 模拟单个服务节点并发请求秒杀商品.
-     * 分布式锁使用公平模式可以让同个线程只能秒杀成功1次, 因为在秒杀成功后想再秒杀需要排队;
+     * 分布式锁使用公平模式可以让同个线程只能秒杀成功1次, 因为在秒杀成功后想再秒杀需要排队
+     * (但有时测试会有秒杀多个的场景, 因为一个来回太快然后还排在第一位, 使用公平锁后一个线程秒杀多个的场景会很少出现);
      * 非公平模式下可能会出现同个线程秒杀获得多个商品的情况(可在最终秒杀成功者日志中看到).
      * 
      * @param requestNum 秒杀并发请求线程数
@@ -147,8 +148,11 @@ public class SecondKillTest extends BaseRedisTest {
         // ----选择需测试的分布式锁实现----
         RedisBasedLock lock = new RedisBasedLock(key, new JedisClusterAdapter(getJedisCluster(1000)), fair);
 
-        // 公平模式下redisson提供的分布式锁需要大量连接来实现服务端阻塞, 会出现大量RedisTimeoutException, 无法很好应对秒杀的场景
+        // redisson 可能会出现大量RedisTimeoutException
         // RLock lock = fair ? getRedissonClient(20000).getFairLock(key) : getRedissonClient(20000).getLock(key);
+
+        // 共享阻塞队列形式
+        // RedisBasedLock lock = RedisBasedLock.newSharedLock(key, new JedisClusterAdapter(getJedisCluster(1000)));
 
         // 重入锁只能使共用该锁的线程之间达成同步, 也就是分布式场景中该锁是没法实现同步的
         // Lock lock = new ReentrantLock(fair);
