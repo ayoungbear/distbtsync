@@ -225,13 +225,13 @@ public class RedisBasedLock extends AbstractRedisLock {
             competitor.incrementAndGet();
             try {
                 for (;;) {
-                    if (operation.doLock(this)) {
+                    boolean result = operation.doLock(this);
+                    if (result) {
                         return true;
                     }
 
                     // 锁的剩余过期时间, ttl 小于0表示锁没有设置过期时间
                     long nanosTtl = TimeUnit.MILLISECONDS.toNanos(getTtl());
-
                     if (timeoutMode) {
                         long nanosTimed = deadline - System.nanoTime();
                         // 超时
@@ -243,7 +243,6 @@ public class RedisBasedLock extends AbstractRedisLock {
                             nanosTtl = nanosTimed;
                         }
                     }
-
                     // 当剩余时间过小则继续自旋不再阻塞
                     if (nanosTtl < 0 || nanosTtl > spinForBlockTimeoutThreshold) {
                         activeSubWorker();
@@ -509,7 +508,7 @@ public class RedisBasedLock extends AbstractRedisLock {
 
         @Override
         public int hashCode() {
-            return key.hashCode();
+            return key == null ? super.hashCode() : key.hashCode();
         }
 
         @Override
@@ -521,7 +520,7 @@ public class RedisBasedLock extends AbstractRedisLock {
                 return false;
             }
             Sync other = (Sync) obj;
-            if (this.shared && other.shared) {
+            if (this.shared && other.shared && this.key != null) {
                 return this.key.equals(other.key);
             }
             return this == other;

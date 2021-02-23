@@ -383,6 +383,22 @@ public class RedisBasedLockTest extends BaseRedisTest {
     }
 
     /**
+     * 自身加锁并设置过期时间, 锁过期后解锁抛出异常.
+     */
+    @Test(expected = IllegalMonitorStateException.class)
+    public void testLockExpireUnlockFail() {
+        long leaseTimeMillis = 1000L;
+        RedisLock lock = getRedisLock();
+        Assert.assertEquals(false, lock.isLocked());
+        Assert.assertEquals(false, lock.isHeldLock());
+        lock.lockTimed(leaseTimeMillis, TimeUnit.MILLISECONDS);
+        Assert.assertEquals(true, lock.isHeldLock());
+        sleep(leaseTimeMillis + 300, TimeUnit.MILLISECONDS);
+        Assert.assertEquals(false, lock.isHeldLock());
+        lock.unlock();
+    }
+
+    /**
      * 测试尝试加锁并设置过期时间成功, 过期后不再持有锁.
      */
     @Test
@@ -400,7 +416,8 @@ public class RedisBasedLockTest extends BaseRedisTest {
     }
 
     /**
-     * 其他线程首先持有锁并设置了过期时间, 当前线程在锁过期后加锁成功
+     * 其他线程首先持有锁并设置了过期时间, 当前线程在锁过期后加锁成功 
+     * 这里测试时发现实际key的过期时间会比设置的略长...
      * @throws InterruptedException
      */
     @Test
@@ -408,11 +425,11 @@ public class RedisBasedLockTest extends BaseRedisTest {
         long leaseTimeMillis = 4000L;
         run(() -> getRedisLock().lockTimed(leaseTimeMillis, TimeUnit.MILLISECONDS)).join();
         RedisLock lock = getRedisLock();
-        long startTime = System.currentTimeMillis();
-        Assert.assertEquals(true, lock.tryLockTimed(leaseTimeMillis + 1000, leaseTimeMillis, TimeUnit.MILLISECONDS));
-        long time = System.currentTimeMillis() - startTime;
+        long startTime = System.nanoTime();
+        Assert.assertEquals(true, lock.tryLockTimed(leaseTimeMillis + 500, leaseTimeMillis, TimeUnit.MILLISECONDS));
+        long time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
         Assert.assertEquals("actual cost time is " + time + "ms", true,
-                leaseTimeMillis - 100 <= time && time <= leaseTimeMillis + 200);
+                leaseTimeMillis - 100 <= time && time <= leaseTimeMillis + 500);
         Assert.assertEquals(true, lock.isHeldLock());
         Assert.assertEquals(1, lock.getHoldCount());
     }
