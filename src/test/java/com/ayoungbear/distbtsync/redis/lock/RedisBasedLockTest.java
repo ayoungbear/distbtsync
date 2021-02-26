@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ayoungbear.distbtsync.BaseSpringRedisTest;
+import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
 import com.ayoungbear.distbtsync.redis.lock.support.RedisConnectionAdapter;
 

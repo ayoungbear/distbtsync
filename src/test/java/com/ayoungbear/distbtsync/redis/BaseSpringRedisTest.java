@@ -1,4 +1,4 @@
-package com.ayoungbear.distbtsync;
+package com.ayoungbear.distbtsync.redis;
 
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +10,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.ayoungbear.distbtsync.redis.BaseRedisTest;
 
 /**
  * spring 自动配置 redis 测试基础类
