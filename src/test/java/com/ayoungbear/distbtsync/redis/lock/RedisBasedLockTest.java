@@ -11,15 +11,17 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ayoungbear.distbtsync.redis.BaseRedisTest;
+import com.ayoungbear.distbtsync.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.RedisConnectionAdapter;
 
 /**
  * 基于 redis 的可重入分布式锁单元测试
  * 
  * @author yangzexiong
  */
-public class RedisBasedLockTest extends BaseRedisTest {
+
+public class RedisBasedLockTest extends BaseSpringRedisTest {
 
     public static final Logger logger = LoggerFactory.getLogger(RedisBasedLockTest.class);
 
@@ -36,7 +38,11 @@ public class RedisBasedLockTest extends BaseRedisTest {
     }
 
     protected RedisLock getRedisLock(String key) {
-        return new RedisBasedLock(key, new JedisClusterAdapter(getJedisCluster(20)));
+        RedisLockCommands commands = null;
+        // commands = getJedisClusterAdapter(); // 使用 jedis cluster 测试
+        // commands = getJedisPoolAdapter(); // 使用 jedis pool 测试
+        commands = new RedisConnectionAdapter(redisConnectionFactory); // 使用 RedisConnection 测试, 默认会使用 lettuce
+        return new RedisBasedLock(key, commands);
     }
 
     protected RedisLock getRedisLock() {
