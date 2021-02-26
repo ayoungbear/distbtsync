@@ -3,30 +3,29 @@ package com.ayoungbear.distbtsync.redis;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.ClusterServersConfig;
 import org.redisson.config.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.ayoungbear.distbtsync.BaseTest;
+import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.JedisPoolAdapter;
 
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPool;
 
-public abstract class BaseRedisTest {
+/**
+ * redis相关测试基础类
+ * 
+ * @author yangzexiong
+ */
+public abstract class BaseRedisTest extends BaseTest {
 
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
-    
     public static final String HOST_AND_PORT = "192.168.42.128:6379," + 
                                                "192.168.42.128:6380," + 
                                                "192.168.42.128:6381," + 
@@ -43,7 +42,7 @@ public abstract class BaseRedisTest {
     protected static final JedisPool jedisPool = getJedisPool();
 
     protected static JedisCluster getJedisCluster(int maxTotal) {
-        GenericObjectPoolConfig<Object> config = new GenericObjectPoolConfig<Object>();
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
         config.setMaxTotal(maxTotal);
         JedisCluster jedisCluster = new JedisCluster(new HashSet<>(redisClusterNodes), config);
         return jedisCluster;
@@ -64,92 +63,12 @@ public abstract class BaseRedisTest {
         return redissonClient;
     }
 
-    @BeforeClass
-    public static void baseSetUpBeforeClass() throws Exception {
+    protected JedisClusterAdapter getJedisClusterAdapter() {
+        return new JedisClusterAdapter(getJedisCluster(20));
     }
 
-    @AfterClass
-    public static void baseTearDownAfterClass() throws Exception {
-    }
-
-    @Before
-    public void baseSetUp() throws Exception {
-    }
-
-    @After
-    public void baseTearDown() throws Exception {
-    }
-
-    public static Thread run(Runnable runnable) {
-        Thread t = new Thread(runnable);
-        t.start();
-        return t;
-    }
-
-    public static Thread run(Runnable runnable, String name) {
-        Thread t = new Thread(runnable, name);
-        t.start();
-        return t;
-    }
-
-    public static void sleep(long time, TimeUnit timeUnit) {
-        try {
-            Thread.sleep(timeUnit.toMillis(time));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void sleep(long seconds) {
-        sleep(seconds, TimeUnit.SECONDS);
-    }
-
-    /**
-     * 并发执行任务
-     * @param nodeNum 节点数, 用线程模拟分布式服务
-     * @param threadNum 每个节点执行线程数
-     * @param tasks 执行的任务
-     */
-    protected void concurrentExecute(int nodeNum, int threadNum, Runnable... tasks) {
-        logger.info("ConcurrentExecute use nodeNum={} threadNum={}", nodeNum, threadNum);
-        CountDownLatch countDownLatch = new CountDownLatch(nodeNum);
-        for (int n = 1; n <= nodeNum; n++) {
-            run(() -> {
-                CountDownLatch threadCountDownLatch = new CountDownLatch(threadNum);
-                try {
-                    for (int t = 1; t <= threadNum; t++) {
-                        run(() -> {
-                            try {
-                                for (Runnable task : tasks) {
-                                    task.run();
-                                }
-                            } catch (Exception e) {
-                                logger.error("concurrentExecute error", e);
-                            } finally {
-                                try {
-                                    threadCountDownLatch.countDown();
-                                } catch (Exception e) {
-                                    logger.error("Await error", e);
-                                }
-                            }
-                        }, Thread.currentThread().getName() + "-runner-" + t);
-                    }
-                } finally {
-                    try {
-                        threadCountDownLatch.await();
-                        countDownLatch.countDown();
-                    } catch (Exception e) {
-                        logger.error("Await error", e);
-                    }
-                }
-            }, "node-" + n);
-        }
-        try {
-            logger.info("Waiting for the end");
-            countDownLatch.await(20, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            logger.error("Await error", e);
-        }
+    protected JedisPoolAdapter getJedisPoolAdapter() {
+        return new JedisPoolAdapter(getJedisPool());
     }
 
 }

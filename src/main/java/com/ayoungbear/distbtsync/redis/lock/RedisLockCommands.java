@@ -19,7 +19,7 @@ public interface RedisLockCommands {
     String eval(String script, String key, String... args);
 
     /**
-     * 订阅功能, 用于解锁时通知等待者竞争锁
+     * 订阅功能, 订阅时需要阻塞当前线程, 用于解锁时通知等待者竞争锁
      * @param channel
      * @param onMessageRun
      */

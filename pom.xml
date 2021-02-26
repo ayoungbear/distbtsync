@@ -18,7 +18,8 @@
         <source.version>1.8</source.version>
         <test.source.version>1.8</test.source.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.version>2.1.7.RELEASE</spring.version>
+        <spring.version>2.3.0.RELEASE</spring.version>
+        <lettuce.version>5.3.0.RELEASE</lettuce.version> 
         <jedis.version>3.3.0</jedis.version>
     </properties>
     
@@ -32,12 +33,12 @@
         </dependency>
         
         <dependency>
-           <groupId>org.redisson</groupId>
-           <artifactId>redisson</artifactId>
-           <version>3.13.1</version>
-           <optional>true</optional>
-        </dependency>  
-    
+			<groupId>io.lettuce</groupId>
+			<artifactId>lettuce-core</artifactId>
+			<version>${lettuce.version}</version>
+			<optional>true</optional>
+		</dependency>
+        
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
@@ -64,6 +65,13 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+        
+        <dependency>
+           <groupId>org.redisson</groupId>
+           <artifactId>redisson</artifactId>
+           <version>3.13.1</version>
+           <scope>test</scope>
+        </dependency>  
         
     </dependencies>
     

@@ -325,9 +325,9 @@ public class RedisBasedLock extends AbstractRedisLock {
      * 启动订阅者, 监听解锁信息
      */
     private final void activeSubWorker() {
-        if (subWorker == null) {
+        if (subWorker == null || !subWorker.isAlive()) {
             synchronized (this) {
-                if (subWorker == null) {
+                if (subWorker == null || !subWorker.isAlive()) {
                     this.subWorker = new SubWorker();
                     this.subWorker.start();
                 }
@@ -357,13 +357,23 @@ public class RedisBasedLock extends AbstractRedisLock {
      */
     private class SubWorker extends Thread {
 
+        public SubWorker() {
+            super();
+            super.setName("RedisBasedLock$SubWorker$" + super.getName());
+        }
+
         @Override
         public void run() {
-            for (;;) {
-                commands.subscribe(channel, this::onMessageRun);
-                if (Thread.interrupted()) {
-                    break;
+            try {
+                for (;;) {
+                    commands.subscribe(channel, this::onMessageRun);
+                    if (Thread.interrupted()) {
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                subWorker = null;
+                throw e;
             }
         }
 
@@ -377,6 +387,7 @@ public class RedisBasedLock extends AbstractRedisLock {
                 sync.signal();
             }
         }
+
     }
 
     /**

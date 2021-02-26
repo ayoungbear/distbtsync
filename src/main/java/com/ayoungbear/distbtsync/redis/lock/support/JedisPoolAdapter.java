@@ -5,30 +5,36 @@ import java.util.function.Consumer;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 
-import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 
 /**
- * 用 {@link redis.clients.jedis.JedisCluster} 实现的 redis 分布式锁操作接口的适配器.
+ * 用 {@link redis.clients.jedis.JedisPool} 实现的 redis 分布式锁操作接口的适配器.
  * 
  * @author yangzexiong
- * @see redis.clients.jedis.JedisCluster
+ * @see redis.clients.jedis.JedisPool
  */
-public class JedisClusterAdapter implements RedisLockCommands {
+public class JedisPoolAdapter implements RedisLockCommands {
 
-    private final JedisCluster jedisCluster;
+    private final JedisPool jedisPool;
 
     private volatile JedisPubSub jedisPubSub;
 
     private Object sync = new Object();
 
-    public JedisClusterAdapter(JedisCluster jedisCluster) {
-        this.jedisCluster = Objects.requireNonNull(jedisCluster, "JedisCluster must not be null");
+    public JedisPoolAdapter(JedisPool jedisPool) {
+        this.jedisPool = Objects.requireNonNull(jedisPool, "JedisPool must not be null");
     }
 
     @Override
     public String eval(String script, String key, String... args) {
-        return String.valueOf(jedisCluster.eval(script, 1, mergeParams(key, args)));
+        Jedis jedis = jedisPool.getResource();
+        try {
+            return String.valueOf(jedis.eval(script, 1, mergeParams(key, args)));
+        } finally {
+            jedis.close();
+        }
     }
 
     @Override
@@ -46,10 +52,16 @@ public class JedisClusterAdapter implements RedisLockCommands {
             }
         }
         if (!jedisPubSub.isSubscribed()) {
-            jedisCluster.subscribe(jedisPubSub, channel);
+            Jedis jedis = jedisPool.getResource();
+            try {
+                jedis.subscribe(jedisPubSub, channel);
+            } finally {
+                jedis.close();
+            }
         } else {
             throw new IllegalMonitorStateException("Already in a subscription");
         }
+
     }
 
     @Override

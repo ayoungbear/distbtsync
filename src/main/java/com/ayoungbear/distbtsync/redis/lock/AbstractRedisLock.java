@@ -31,7 +31,7 @@ public abstract class AbstractRedisLock implements RedisLock {
                                                          "end; "+
                                                          "return 'OK'; " +
                                                      "end; " +
-                                                     "return redis.call('pttl', KEYS[1]); ";
+                                                     "return tostring(redis.call('pttl', KEYS[1])); ";
 
     private static final String TRY_RELEASE_SCRIPT = "if (redis.call('hexists', KEYS[1], ARGV[1]) == 0) then " +
                                                          "return '-1';" +
