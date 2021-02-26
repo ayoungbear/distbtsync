@@ -43,6 +43,7 @@
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
             <version>${spring.version}</version>
+            <optional>true</optional>
         </dependency>
         
         <dependency>
