@@ -26,12 +26,12 @@ import redis.clients.jedis.JedisPool;
  */
 public abstract class BaseRedisTest extends BaseTest {
 
-    public static final String HOST_AND_PORT = "192.168.42.217:6379," + 
-                                               "192.168.42.217:6380," + 
-                                               "192.168.42.217:6381," + 
-                                               "192.168.42.217:6382," + 
-                                               "192.168.42.217:6383," + 
-                                               "192.168.42.217:6384";
+    public static final String HOST_AND_PORT = "192.168.42.128:6379," + 
+                                               "192.168.42.128:6380," + 
+                                               "192.168.42.128:6381," + 
+                                               "192.168.42.128:6382," + 
+                                               "192.168.42.128:6383," + 
+                                               "192.168.42.128:6384";
 
     protected static final List<HostAndPort> redisClusterNodes = Arrays.asList(HOST_AND_PORT.split(",")).stream()
             .map((hp) -> hp.split(":")).map((hp) -> new HostAndPort(hp[0], Integer.valueOf(hp[1])))
@@ -49,7 +49,7 @@ public abstract class BaseRedisTest extends BaseTest {
     }
 
     protected static JedisPool getJedisPool() {
-        JedisPool jedisPool = new JedisPool("192.168.42.217", 6370);
+        JedisPool jedisPool = new JedisPool("192.168.42.128", 6370);
         return jedisPool;
     }
 
