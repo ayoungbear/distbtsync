@@ -155,7 +155,9 @@ public class RedisBasedLock extends AbstractRedisLock {
                 if (holdCount <= 0) {
                     removeIdentifier();
                     // 解锁后唤醒其他等待者争用锁
-                    sync.signal();
+                    if (!fair) {
+                        sync.signal();
+                    }
                 }
                 return releaseSuccessful;
             }
