@@ -222,8 +222,7 @@ public class RedisBasedLock extends AbstractRedisLock {
             competitor.incrementAndGet();
             try {
                 for (;;) {
-                    boolean result = operation.doLock(this);
-                    if (result) {
+                    if (operation.doLock(this)) {
                         return true;
                     }
 
@@ -243,6 +242,13 @@ public class RedisBasedLock extends AbstractRedisLock {
                     // 当剩余时间过小则继续自旋不再阻塞
                     if (nanosTtl < 0 || nanosTtl > spinForBlockTimeoutThreshold) {
                         sync.activeSubWorker(commands, channel);
+                        if (nanosTtl < 0) {
+                            // 如果锁没有设置过期时间, 使用该值阻塞超时时间, 防止死锁, 因为有可能在初始化订阅的过程中发生解锁
+                            long defaultTtl = getDefaultTimeoutMillisForUnlimitTtl();
+                            if (defaultTtl > 0) {
+                                nanosTtl = TimeUnit.MILLISECONDS.toNanos(getDefaultTimeoutMillisForUnlimitTtl());
+                            }
+                        }
                         sync.await(interruptible, nanosTtl);
                     }
 
@@ -451,14 +457,14 @@ public class RedisBasedLock extends AbstractRedisLock {
          */
         public void await(boolean interruptible, long timeoutNanos) {
             try {
-                if (interruptible) {
-                    if (timeoutNanos > 0) {
-                        semaphore.tryAcquire(timeoutNanos, TimeUnit.NANOSECONDS);
-                    } else {
-                        semaphore.acquire();
-                    }
+                if (timeoutNanos > 0) {
+                    semaphore.tryAcquire(timeoutNanos, TimeUnit.NANOSECONDS);
                 } else {
-                    semaphore.acquireUninterruptibly();
+                    if (interruptible) {
+                        semaphore.acquire();
+                    } else {
+                        semaphore.acquireUninterruptibly();
+                    }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -506,6 +512,9 @@ public class RedisBasedLock extends AbstractRedisLock {
 
         /**
          * 启动订阅者, 监听解锁信息
+         * @param commands
+         * @param channel
+         * @return 是否已初始化订阅者
          */
         public void activeSubWorker(RedisLockCommands commands, String channel) {
             if (subWorker == null || !subWorker.isAlive()) {
@@ -525,8 +534,7 @@ public class RedisBasedLock extends AbstractRedisLock {
             if (subWorker != null) {
                 synchronized (this) {
                     if (subWorker != null) {
-                        subWorker.interrupt();
-                        subWorker.unsubscribe();
+                        subWorker.finish();
                         this.subWorker = null;
                     }
                 }
@@ -549,9 +557,12 @@ public class RedisBasedLock extends AbstractRedisLock {
              */
             private final String channel;
 
+            private volatile boolean finish = false;
+
             public SubWorker(RedisLockCommands commands, String channel) {
                 super();
-                super.setName("RedisBasedLock$SubWorker$" + super.getName());
+                super.setName(
+                        "RedisBasedLock$SubWorker$from-" + Thread.currentThread().getName() + "$" + super.getName());
                 this.commands = commands;
                 this.channel = channel;
             }
@@ -559,33 +570,34 @@ public class RedisBasedLock extends AbstractRedisLock {
             @Override
             public void run() {
                 try {
-                    for (;;) {
+                    while (!finish) {
                         commands.subscribe(channel, this::onMessageRun);
                         if (Thread.interrupted()) {
                             break;
                         }
                     }
                 } catch (Exception e) {
+                    subWorker = null;
                     throw e;
                 }
             }
 
-            public void unsubscribe() {
-                commands.unsubscribe();
+            public void finish() {
+                try {
+                    finish = true;
+                    commands.unsubscribe();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
             }
 
             private void onMessageRun(String message) {
-                if (Thread.interrupted()) {
-                    Thread.currentThread().interrupt();
-                    commands.unsubscribe();
-                }
                 if (getKey().equals(message)) {
                     // 唤醒等待线程竞争锁
                     signal();
                 }
             }
         }
-
     }
 
 }
