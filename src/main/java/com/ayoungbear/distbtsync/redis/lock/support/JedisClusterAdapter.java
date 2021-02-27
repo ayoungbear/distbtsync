@@ -18,9 +18,7 @@ public class JedisClusterAdapter implements RedisLockCommands {
 
     private final JedisCluster jedisCluster;
 
-    private volatile JedisPubSub jedisPubSub;
-
-    private Object sync = new Object();
+    private JedisPubSub jedisPubSub;
 
     public JedisClusterAdapter(JedisCluster jedisCluster) {
         this.jedisCluster = Objects.requireNonNull(jedisCluster, "JedisCluster must not be null");
@@ -34,16 +32,12 @@ public class JedisClusterAdapter implements RedisLockCommands {
     @Override
     public void subscribe(String channel, Consumer<String> onMessageRun) {
         if (jedisPubSub == null) {
-            synchronized (sync) {
-                if (jedisPubSub == null) {
-                    jedisPubSub = new JedisPubSub() {
-                        @Override
-                        public void onMessage(String channel, String message) {
-                            onMessageRun.accept(message);
-                        }
-                    };
+            jedisPubSub = new JedisPubSub() {
+                @Override
+                public void onMessage(String channel, String message) {
+                    onMessageRun.accept(message);
                 }
-            }
+            };
         }
         if (!jedisPubSub.isSubscribed()) {
             jedisCluster.subscribe(jedisPubSub, channel);
@@ -54,15 +48,8 @@ public class JedisClusterAdapter implements RedisLockCommands {
 
     @Override
     public void unsubscribe() {
-        if (jedisPubSub != null) {
-            synchronized (sync) {
-                if (jedisPubSub != null) {
-                    if (jedisPubSub.isSubscribed()) {
-                        jedisPubSub.unsubscribe();
-                    }
-                    jedisPubSub = null;
-                }
-            }
+        if (jedisPubSub != null && jedisPubSub.isSubscribed()) {
+            jedisPubSub.unsubscribe();
         }
     }
 

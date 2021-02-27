@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.connection.Subscription;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.util.Assert;
@@ -28,9 +29,7 @@ public class RedisConnectionAdapter implements RedisLockCommands {
 
     private StringRedisSerializer serializer = new StringRedisSerializer();
 
-    private volatile RedisConnection subRedisConnection;
-
-    private Object sync = new Object();
+    private RedisConnection subRedisConnection;
 
     private Semaphore latch = new Semaphore(0);
 
@@ -51,25 +50,21 @@ public class RedisConnectionAdapter implements RedisLockCommands {
 
     @Override
     public String eval(String script, String key, String... args) {
-        Object result = connectionSupplier.get().eval(getRedisSerializer().serialize(script), ReturnType.VALUE, 1,
-                keyAndArgs(key, args));
+        RedisConnection connection = connectionSupplier.get();
+        Object result = connection.eval(serialize(script), ReturnType.VALUE, 1, keyAndArgs(key, args));
         return deserializeResult(result);
     }
 
     @Override
     public void subscribe(String channel, Consumer<String> onMessageRun) {
         if (subRedisConnection == null) {
-            synchronized (sync) {
-                if (subRedisConnection == null) {
-                    subRedisConnection = connectionSupplier.get();
-                }
-            }
+            subRedisConnection = connectionSupplier.get();
         }
         if (!subRedisConnection.isSubscribed()) {
             // RedisConnection 根据实现类不同, 订阅方法可能是异步的, 比如 LettuceConnection
-            subRedisConnection.subscribe(
-                    (message, pattern) -> onMessageRun.accept(getRedisSerializer().deserialize(message.getBody())),
-                    getRedisSerializer().serialize(channel));
+            subRedisConnection.subscribe((message, pattern) -> {
+                onMessageRun.accept(deserializeResult(message.getBody()));
+            }, serialize(channel));
             // 如果是异步订阅, 那么订阅线程在此阻塞, 等待解除订阅
             latch.acquireUninterruptibly();
         } else {
@@ -79,20 +74,20 @@ public class RedisConnectionAdapter implements RedisLockCommands {
 
     @Override
     public void unsubscribe() {
-        if (subRedisConnection != null) {
-            synchronized (sync) {
-                if (subRedisConnection != null) {
-                    try {
-                        if (subRedisConnection.isSubscribed()) {
-                            subRedisConnection.getSubscription().unsubscribe();
-                        }
-                        subRedisConnection = null;
-                    } finally {
-                        latch.release();
-                    }
+        if (subRedisConnection != null && subRedisConnection.isSubscribed()) {
+            try {
+                Subscription subscription = subRedisConnection.getSubscription();
+                if (subscription != null) {
+                    subscription.unsubscribe();
                 }
+            } finally {
+                latch.release();
             }
         }
+    }
+
+    protected byte[] serialize(String script) {
+        return getRedisSerializer().serialize(script);
     }
 
     protected String deserializeResult(Object result) {
@@ -115,7 +110,7 @@ public class RedisConnectionAdapter implements RedisLockCommands {
         return keyAndArgs;
     }
 
-    protected RedisSerializer<String> getRedisSerializer() {
+    private RedisSerializer<String> getRedisSerializer() {
         return serializer;
     }
 
