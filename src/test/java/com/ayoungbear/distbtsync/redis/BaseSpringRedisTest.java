@@ -11,6 +11,8 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.ayoungbear.distbtsync.redis.lock.support.RedisConnectionAdapter;
+
 /**
  * spring 自动配置 redis 测试基础类
  * 
@@ -19,7 +21,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = BaseSpringRedisTest.BaseSpringRedisTestConfiguration.class)
 @TestPropertySource(properties = { "spring.redis.cluster.nodes=" + BaseRedisTest.HOST_AND_PORT,
-        "spring.redis.timeout=60000" })
+        "spring.redis.timeout=60000", "spring.redis.jedis.pool.maxActive=2000",
+        "spring.redis.lettuce.pool.maxActive=2000" })
 public abstract class BaseSpringRedisTest extends BaseRedisTest {
 
     @Configuration
@@ -29,5 +32,9 @@ public abstract class BaseSpringRedisTest extends BaseRedisTest {
 
     @Autowired
     protected RedisConnectionFactory redisConnectionFactory;
+
+    protected RedisConnectionAdapter getRedisConnectionAdapter() {
+        return new RedisConnectionAdapter(redisConnectionFactory);
+    }
 
 }

@@ -13,9 +13,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ayoungbear.distbtsync.redis.BaseRedisTest;
+import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
 import com.ayoungbear.distbtsync.redis.lock.RedisLock;
+import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
 
 /**
@@ -23,7 +24,7 @@ import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
  * 
  * @author yangzexiong
  */
-public class SecondKillTest extends BaseRedisTest {
+public class SecondKillTest extends BaseSpringRedisTest {
 
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
@@ -145,14 +146,18 @@ public class SecondKillTest extends BaseRedisTest {
         // 分布式锁模式-公平/非公平
         boolean fair = true;
 
+        RedisLockCommands commands = null;
+        // commands = getRedisConnectionAdapter();
+        commands = new JedisClusterAdapter(getJedisCluster(1000)); // 用 jedis 比 LettuceConnection 快啊...
+
         // ----选择需测试的分布式锁实现----
-        RedisBasedLock lock = new RedisBasedLock(key, new JedisClusterAdapter(getJedisCluster(1000)), fair);
+        RedisBasedLock lock = new RedisBasedLock(key, commands, fair);
 
         // redisson 可能会出现大量RedisTimeoutException
-        // RLock lock = fair ? getRedissonClient(20000).getFairLock(key) : getRedissonClient(20000).getLock(key);
+        // RLock lock = fair ? getRedissonClient(2000).getFairLock(key) : getRedissonClient(2000).getLock(key);
 
         // 共享阻塞队列形式
-        // RedisBasedLock lock = RedisBasedLock.newSharedLock(key, new JedisClusterAdapter(getJedisCluster(1000)));
+        // RedisBasedLock lock = RedisBasedLock.newSharedLock(key, commands);
 
         // 重入锁只能使共用该锁的线程之间达成同步, 也就是分布式场景中该锁是没法实现同步的
         // Lock lock = new ReentrantLock(fair);
