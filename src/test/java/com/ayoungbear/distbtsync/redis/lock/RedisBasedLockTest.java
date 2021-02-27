@@ -41,7 +41,7 @@ public class RedisBasedLockTest extends BaseSpringRedisTest {
         RedisLockCommands commands = null;
         // commands = getJedisClusterAdapter(); // 使用 jedis cluster 测试
         // commands = getJedisPoolAdapter(); // 使用 jedis pool 测试
-        commands = new RedisConnectionAdapter(redisConnectionFactory); // 使用 RedisConnection 测试, 默认会使用 lettuce
+        commands = new RedisConnectionAdapter(redisConnectionFactory); // 使用 RedisConnection 测试, 默认会使用 LettuceConnection
         return new RedisBasedLock(key, commands);
     }
 

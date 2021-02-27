@@ -28,11 +28,6 @@ public class RedisBasedLock extends AbstractRedisLock {
     private final boolean fair;
 
     /**
-     * 解锁信息订阅工作线程, 如果已没有线程使用分布式锁会被回收
-     */
-    private volatile SubWorker subWorker;
-
-    /**
      * 记录当前对象中有多少线程在自旋竞争锁
      */
     private AtomicInteger competitor = new AtomicInteger(0);
@@ -43,7 +38,7 @@ public class RedisBasedLock extends AbstractRedisLock {
 
     public RedisBasedLock(String key, RedisLockCommands commands, boolean fair) {
         super(key, commands);
-        this.sync = Sync.newInstance();
+        this.sync = Sync.newInstance(key);
         this.fair = fair;
     }
 
@@ -245,7 +240,7 @@ public class RedisBasedLock extends AbstractRedisLock {
                     }
                     // 当剩余时间过小则继续自旋不再阻塞
                     if (nanosTtl < 0 || nanosTtl > spinForBlockTimeoutThreshold) {
-                        activeSubWorker();
+                        sync.activeSubWorker(commands, channel);
                         sync.await(interruptible, nanosTtl);
                     }
 
@@ -256,7 +251,7 @@ public class RedisBasedLock extends AbstractRedisLock {
             } finally {
                 if (competitor.decrementAndGet() == 0 && !sync.hasQueuedThreads()) {
                     // 如果没有其他线程需要加锁那么停止订阅者的工作
-                    terminateSubWorker();
+                    sync.terminateSubWorker();
                 }
                 releaseIfNecessary();
             }
@@ -322,75 +317,6 @@ public class RedisBasedLock extends AbstractRedisLock {
     }
 
     /**
-     * 启动订阅者, 监听解锁信息
-     */
-    private final void activeSubWorker() {
-        if (subWorker == null || !subWorker.isAlive()) {
-            synchronized (this) {
-                if (subWorker == null || !subWorker.isAlive()) {
-                    this.subWorker = new SubWorker();
-                    this.subWorker.start();
-                }
-            }
-        }
-    }
-
-    /**
-     * 终止订阅工作
-     */
-    private final void terminateSubWorker() {
-        if (subWorker != null) {
-            synchronized (this) {
-                if (subWorker != null) {
-                    subWorker.interrupt();
-                    commands.unsubscribe();
-                    this.subWorker = null;
-                }
-            }
-        }
-    }
-
-    /**
-     * 订阅解锁信息工作线程
-     * 
-     * @author yangzexiong
-     */
-    private class SubWorker extends Thread {
-
-        public SubWorker() {
-            super();
-            super.setName("RedisBasedLock$SubWorker$" + super.getName());
-        }
-
-        @Override
-        public void run() {
-            try {
-                for (;;) {
-                    commands.subscribe(channel, this::onMessageRun);
-                    if (Thread.interrupted()) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                subWorker = null;
-                throw e;
-            }
-        }
-
-        private void onMessageRun(String message) {
-            if (Thread.interrupted()) {
-                Thread.currentThread().interrupt();
-                commands.unsubscribe();
-            }
-            if (getLockName().equals(message)) {
-                // 唤醒等待线程竞争锁
-                sync.signal();
-            }
-        }
-
-    }
-
-    /**
      * 基于 {@link AbstractQueuedSynchronizer} 实现的阻塞队列, 作为内部同步器
      * 
      * @author yangzexiong
@@ -412,6 +338,40 @@ public class RedisBasedLock extends AbstractRedisLock {
         private final String key;
 
         private final boolean shared;
+
+        /**
+         * 解锁信息订阅工作线程
+         */
+        private volatile SubWorker subWorker;
+
+        public static Sync newInstance(String key) {
+            Sync sync = new Sync(key, false);
+            return sync;
+        }
+
+        /**
+         * 根据给定的 {@code key} 获取对应的共享阻塞队列 {@link Sync}, 队列是属于公平模式加锁类型的
+         * @param key the name of {@link RedisBasedLock}
+         * @return the shared blocking queue.
+         */
+        public static Sync newShared(String key) {
+            Sync sync = getRedisSyncLockQueueFromCache(key);
+            if (sync == null) {
+                synchronized (syncQueueCache) {
+                    sync = getRedisSyncLockQueueFromCache(key);
+                    if (sync == null) {
+                        sync = new Sync(key, true);
+                        syncQueueCache.put(sync, new WeakReference<Sync>(sync));
+                    }
+                }
+            }
+            return sync;
+        }
+
+        private static Sync getRedisSyncLockQueueFromCache(String key) {
+            WeakReference<Sync> syncRef = syncQueueCache.get(new Sync(key, true));
+            return syncRef == null ? null : syncRef.get();
+        }
 
         private Sync(String key, boolean shared) {
             this.key = key;
@@ -519,7 +479,7 @@ public class RedisBasedLock extends AbstractRedisLock {
 
         @Override
         public int hashCode() {
-            return key == null ? super.hashCode() : key.hashCode();
+            return key.hashCode();
         }
 
         @Override
@@ -531,39 +491,96 @@ public class RedisBasedLock extends AbstractRedisLock {
                 return false;
             }
             Sync other = (Sync) obj;
-            if (this.shared && other.shared && this.key != null) {
+            if (this.shared && other.shared) {
                 return this.key.equals(other.key);
             }
             return this == other;
         }
         
-        public static Sync newInstance() {
-            Sync sync = new Sync(null, false);
-            return sync;
+        public String getKey() {
+            return key;
         }
 
         /**
-         * 根据给定的 {@code key} 获取对应的共享阻塞队列 {@link Sync}, 队列是属于公平模式加锁类型的
-         * @param key the name of {@link RedisBasedLock}
-         * @return the shared blocking queue.
+         * 启动订阅者, 监听解锁信息
          */
-        public static Sync newShared(String key) {
-            Sync sync = getRedisSyncLockQueueFromCache(key);
-            if (sync == null) {
-                synchronized (syncQueueCache) {
-                    sync = getRedisSyncLockQueueFromCache(key);
-                    if (sync == null) {
-                        sync = new Sync(key, true);
-                        syncQueueCache.put(sync, new WeakReference<Sync>(sync));
+        public void activeSubWorker(RedisLockCommands commands, String channel) {
+            if (subWorker == null || !subWorker.isAlive()) {
+                synchronized (this) {
+                    if (subWorker == null || !subWorker.isAlive()) {
+                        this.subWorker = new SubWorker(commands, channel);
+                        this.subWorker.start();
                     }
                 }
             }
-            return sync;
         }
 
-        private static Sync getRedisSyncLockQueueFromCache(String key) {
-            WeakReference<Sync> syncRef = syncQueueCache.get(new Sync(key, true));
-            return syncRef == null ? null : syncRef.get();
+        /**
+         * 终止订阅工作
+         */
+        public void terminateSubWorker() {
+            if (subWorker != null) {
+                synchronized (this) {
+                    if (subWorker != null) {
+                        subWorker.interrupt();
+                        subWorker.unsubscribe();
+                        this.subWorker = null;
+                    }
+                }
+            }
+        }
+
+        /**
+         * 订阅解锁信息工作线程
+         * 
+         * @author yangzexiong
+         */
+        private class SubWorker extends Thread {
+
+            /**
+             * 发布订阅接口
+             */
+            private final RedisLockCommands commands;
+            /**
+             * 解锁信息发布频道
+             */
+            private final String channel;
+
+            public SubWorker(RedisLockCommands commands, String channel) {
+                super();
+                super.setName("RedisBasedLock$SubWorker$" + super.getName());
+                this.commands = commands;
+                this.channel = channel;
+            }
+
+            @Override
+            public void run() {
+                try {
+                    for (;;) {
+                        commands.subscribe(channel, this::onMessageRun);
+                        if (Thread.interrupted()) {
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    throw e;
+                }
+            }
+
+            public void unsubscribe() {
+                commands.unsubscribe();
+            }
+
+            private void onMessageRun(String message) {
+                if (Thread.interrupted()) {
+                    Thread.currentThread().interrupt();
+                    commands.unsubscribe();
+                }
+                if (getKey().equals(message)) {
+                    // 唤醒等待线程竞争锁
+                    signal();
+                }
+            }
         }
 
     }
