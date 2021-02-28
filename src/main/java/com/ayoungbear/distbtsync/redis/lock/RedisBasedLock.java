@@ -9,7 +9,7 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * 基于 redis 的可重入分布式锁.
- * 可通过 {@link #getSharedLock(String, RedisLockCommands)} 方式来获取使用
+ * 可通过 {@link #newSharedLock(String, RedisLockCommands)} 方式来获取使用
  * 共享阻塞队列的公平锁对象.
  * 
  * @author yangzexiong
@@ -330,7 +330,7 @@ public class RedisBasedLock extends AbstractRedisLock {
      * 
      * @author yangzexiong
      */
-    protected static class Sync extends AbstractQueuedSynchronizer {
+    static class Sync extends AbstractQueuedSynchronizer {
 
         private static final long serialVersionUID = -5447636560573717767L;
 
@@ -342,7 +342,7 @@ public class RedisBasedLock extends AbstractRedisLock {
          */
         private static final WeakHashMap<Sync, WeakReference<Sync>> syncQueueCache = new WeakHashMap<>(256);
 
-        private final Semaphore semaphore;
+        private Semaphore semaphore;
 
         private final String key;
 
@@ -551,11 +551,11 @@ public class RedisBasedLock extends AbstractRedisLock {
             /**
              * 发布订阅接口
              */
-            private final RedisSubCommands commands;
+            private RedisSubCommands commands;
             /**
              * 解锁信息发布频道
              */
-            private final String channel;
+            private String channel;
 
             private volatile boolean finish = false;
 
