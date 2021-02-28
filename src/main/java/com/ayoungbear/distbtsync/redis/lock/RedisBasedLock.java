@@ -516,7 +516,7 @@ public class RedisBasedLock extends AbstractRedisLock {
          * @param channel
          * @return 是否已初始化订阅者
          */
-        public void activeSubWorker(RedisLockCommands commands, String channel) {
+        public void activeSubWorker(RedisSubCommands commands, String channel) {
             if (subWorker == null || !subWorker.isAlive()) {
                 synchronized (this) {
                     if (subWorker == null || !subWorker.isAlive()) {
@@ -551,7 +551,7 @@ public class RedisBasedLock extends AbstractRedisLock {
             /**
              * 发布订阅接口
              */
-            private final RedisLockCommands commands;
+            private final RedisSubCommands commands;
             /**
              * 解锁信息发布频道
              */
@@ -559,7 +559,7 @@ public class RedisBasedLock extends AbstractRedisLock {
 
             private volatile boolean finish = false;
 
-            public SubWorker(RedisLockCommands commands, String channel) {
+            public SubWorker(RedisSubCommands commands, String channel) {
                 super();
                 super.setName(
                         "RedisBasedLock$SubWorker$from-" + Thread.currentThread().getName() + "$" + super.getName());
