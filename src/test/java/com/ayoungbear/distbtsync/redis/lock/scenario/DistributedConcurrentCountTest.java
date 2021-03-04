@@ -83,9 +83,6 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
     /**
      * 模拟每个应用节点内部多线程并发对公共变量进行计数增操作,
      * 可选择具体的分布式锁实现并观察不同场景下的执行情况.
-     * <<特指如下的分布式快速并发计数的场景>>, 简单比较了 redisson 的分布式锁和 RedisBasedLock
-     * 公平锁模式下: RedisBasedLock 的处理速度要远快于 RedissonFairLock , cpu 消耗相当,  当然可能因为 RedisBasedLock 只是"相对的公平".
-     * 非公平模式下: RedisBasedLock 的处理速度要略慢于 RedissonLock, 但 cpu 消耗少很多.
      * 
      * @param threadNum 线程数
      * @param countTimes 每个线程计数增的次数
@@ -98,7 +95,8 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
 
         RedisLockCommands commands = null;
         // commands = getRedisConnectionAdapter();
-        commands = new JedisClusterAdapter(getJedisCluster(1000)); // 用 jedis 比 LettuceConnection 快啊...
+        commands = new JedisClusterAdapter(getJedisCluster(1000)); // 用 jedis 比 LettuceConnection 快啊
+        // commands = getLettuceClusterAdapter();
 
         // ----选择需测试的分布式锁实现----
         RedisBasedLock lock = new RedisBasedLock(key, commands, fair);

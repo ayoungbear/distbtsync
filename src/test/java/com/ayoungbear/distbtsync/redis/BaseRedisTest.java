@@ -1,5 +1,6 @@
 package com.ayoungbear.distbtsync.redis;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -14,7 +15,10 @@ import org.redisson.config.Config;
 import com.ayoungbear.distbtsync.BaseTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisPoolAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.LettuceClusterAdapter;
 
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.RedisClusterURIUtil;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPool;
@@ -63,12 +67,20 @@ public abstract class BaseRedisTest extends BaseTest {
         return redissonClient;
     }
 
+    protected static RedisClusterClient getRedisClusterClient() {
+        return RedisClusterClient.create(RedisClusterURIUtil.toRedisURIs(URI.create("redis://" + HOST_AND_PORT)));
+    }
+
     protected JedisClusterAdapter getJedisClusterAdapter() {
         return new JedisClusterAdapter(getJedisCluster(20));
     }
 
     protected JedisPoolAdapter getJedisPoolAdapter() {
         return new JedisPoolAdapter(getJedisPool());
+    }
+
+    protected LettuceClusterAdapter getLettuceClusterAdapter() {
+        return new LettuceClusterAdapter(getRedisClusterClient());
     }
 
 }
