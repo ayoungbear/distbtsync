@@ -17,7 +17,7 @@ import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
 import com.ayoungbear.distbtsync.redis.lock.RedisLock;
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
-import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 
 /**
  * 应用分布式锁模拟测试秒杀商品场景
@@ -147,9 +147,9 @@ public class SecondKillTest extends BaseSpringRedisTest {
         boolean fair = true;
 
         RedisLockCommands commands = null;
-        // commands = getRedisConnectionAdapter();
-        commands = new JedisClusterAdapter(getJedisCluster(1000)); // 用 jedis 比 LettuceConnection 快啊
-        // commands = getLettuceClusterAdapter();
+        // commands = getRedisConnectionCommandsAdapter();
+        commands = new JedisClusterCommandsAdapter(getJedisCluster(1000));
+        // commands = getLettuceClusterCommandsAdapter();
 
         // ----选择需测试的分布式锁实现----
         RedisBasedLock lock = new RedisBasedLock(key, commands, fair);

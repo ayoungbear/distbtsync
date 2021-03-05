@@ -516,12 +516,13 @@ public class RedisBasedLock extends AbstractRedisLock {
          * @param channel
          * @return 是否已初始化订阅者
          */
-        public void activeSubWorker(RedisSubCommands commands, String channel) {
+        public void activeSubWorker(RedisLockCommands commands, String channel) {
             if (subWorker == null || !subWorker.isAlive()) {
                 synchronized (this) {
                     if (subWorker == null || !subWorker.isAlive()) {
-                        this.subWorker = new SubWorker(commands, channel);
-                        this.subWorker.start();
+                        RedisSubscription subscription = commands.getSubscription(channel, this::onMessageRun);
+                        this.subWorker = new SubWorker(subscription);
+                        this.subWorker.subscribe();
                     }
                 }
             }
@@ -534,10 +535,20 @@ public class RedisBasedLock extends AbstractRedisLock {
             if (subWorker != null) {
                 synchronized (this) {
                     if (subWorker != null) {
-                        subWorker.finish();
+                        subWorker.unsubscribe();
                         this.subWorker = null;
                     }
                 }
+            }
+        }
+
+        /**
+         * 收到解锁消息后唤醒等待线程竞争锁
+         * @param message
+         */
+        private void onMessageRun(String message) {
+            if (getKey().equals(message)) {
+                signal();
             }
         }
 
@@ -549,29 +560,24 @@ public class RedisBasedLock extends AbstractRedisLock {
         private class SubWorker extends Thread {
 
             /**
-             * 发布订阅接口
+             * 订阅者
              */
-            private RedisSubCommands commands;
-            /**
-             * 解锁信息发布频道
-             */
-            private String channel;
+            private RedisSubscription subscription;
 
             private volatile boolean finish = false;
 
-            public SubWorker(RedisSubCommands commands, String channel) {
+            public SubWorker(RedisSubscription subscription) {
                 super();
                 super.setName(
                         "RedisBasedLock$SubWorker$from-" + Thread.currentThread().getName() + "$" + super.getName());
-                this.commands = commands;
-                this.channel = channel;
+                this.subscription = subscription;
             }
 
             @Override
             public void run() {
                 try {
                     while (!finish) {
-                        commands.subscribe(channel, this::onMessageRun);
+                        subscription.subscribe();
                         if (Thread.interrupted()) {
                             break;
                         }
@@ -582,19 +588,16 @@ public class RedisBasedLock extends AbstractRedisLock {
                 }
             }
 
-            public void finish() {
-                try {
-                    finish = true;
-                    commands.unsubscribe();
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
+            public void subscribe() {
+                this.start();
             }
 
-            private void onMessageRun(String message) {
-                if (getKey().equals(message)) {
-                    // 唤醒等待线程竞争锁
-                    signal();
+            public void unsubscribe() {
+                try {
+                    finish = true;
+                    subscription.unsubscribe();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
                 }
             }
         }

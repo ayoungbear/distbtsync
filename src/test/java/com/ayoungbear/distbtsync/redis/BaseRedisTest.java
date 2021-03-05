@@ -13,9 +13,9 @@ import org.redisson.config.ClusterServersConfig;
 import org.redisson.config.Config;
 
 import com.ayoungbear.distbtsync.BaseTest;
-import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
-import com.ayoungbear.distbtsync.redis.lock.support.JedisPoolAdapter;
-import com.ayoungbear.distbtsync.redis.lock.support.LettuceClusterAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.JedisPoolCommandsAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.LettuceClusterCommandsAdapter;
 
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.RedisClusterURIUtil;
@@ -71,16 +71,16 @@ public abstract class BaseRedisTest extends BaseTest {
         return RedisClusterClient.create(RedisClusterURIUtil.toRedisURIs(URI.create("redis://" + HOST_AND_PORT)));
     }
 
-    protected JedisClusterAdapter getJedisClusterAdapter() {
-        return new JedisClusterAdapter(getJedisCluster(20));
+    protected JedisClusterCommandsAdapter getJedisClusterCommandsAdapter() {
+        return new JedisClusterCommandsAdapter(getJedisCluster(20));
     }
 
-    protected JedisPoolAdapter getJedisPoolAdapter() {
-        return new JedisPoolAdapter(getJedisPool());
+    protected JedisPoolCommandsAdapter getJedisPoolCommandsAdapter() {
+        return new JedisPoolCommandsAdapter(getJedisPool());
     }
 
-    protected LettuceClusterAdapter getLettuceClusterAdapter() {
-        return new LettuceClusterAdapter(getRedisClusterClient());
+    protected LettuceClusterCommandsAdapter getLettuceClusterCommandsAdapter() {
+        return new LettuceClusterCommandsAdapter(getRedisClusterClient());
     }
 
 }

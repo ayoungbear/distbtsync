@@ -12,7 +12,7 @@ import org.junit.Test;
 import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
-import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 
 /**
  * 测试多节点+多线程的分布式并发计数的场景,
@@ -91,12 +91,12 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
      */
     private void doConcurrentCount(int threadNum, int countTimes, long beginTime) throws Exception {
         // 分布式锁模式-公平/非公平
-        boolean fair = true;
+        boolean fair = false;
 
         RedisLockCommands commands = null;
-        // commands = getRedisConnectionAdapter();
-        commands = new JedisClusterAdapter(getJedisCluster(1000)); // 用 jedis 比 LettuceConnection 快啊
-        // commands = getLettuceClusterAdapter();
+        // commands = getRedisConnectionCommandsAdapter();
+        commands = new JedisClusterCommandsAdapter(getJedisCluster(1000)); 
+        // commands = getLettuceClusterCommandsAdapter();
 
         // ----选择需测试的分布式锁实现----
         RedisBasedLock lock = new RedisBasedLock(key, commands, fair);

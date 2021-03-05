@@ -5,6 +5,7 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
+import com.ayoungbear.distbtsync.redis.lock.RedisSubscription;
 
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.cluster.RedisClusterClient;
@@ -20,15 +21,13 @@ import io.lettuce.core.pubsub.RedisPubSubAdapter;
  * @author yangzexiong
  * @see io.lettuce.core.cluster.RedisClusterClient
  */
-public class LettuceClusterAdapter implements RedisLockCommands {
+public class LettuceClusterCommandsAdapter implements RedisLockCommands {
 
     private RedisClusterClient client;
 
-    private RedisClusterSubListener subListener;
-
     private volatile StatefulRedisClusterConnection<String, String> connection;
 
-    public LettuceClusterAdapter(RedisClusterClient client) {
+    public LettuceClusterCommandsAdapter(RedisClusterClient client) {
         this.client = Objects.requireNonNull(client, "RedisClusterClient must not be null");
     }
 
@@ -41,18 +40,8 @@ public class LettuceClusterAdapter implements RedisLockCommands {
     }
 
     @Override
-    public void subscribe(String channel, Consumer<String> onMessageRun) {
-        if (subListener == null) {
-            subListener = new RedisClusterSubListener(client, channel, onMessageRun);
-        }
-        subListener.subscribed();
-    }
-
-    @Override
-    public void unsubscribe() {
-        if (subListener != null && subListener.isSubscribed()) {
-            subListener.unsubscribed();
-        }
+    public RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun) {
+        return new LettuceClusterSubscription(client, channel, onMessageRun);
     }
 
     private StatefulRedisClusterConnection<String, String> getConnection() {
@@ -67,15 +56,16 @@ public class LettuceClusterAdapter implements RedisLockCommands {
     }
 
     /**
-     * 订阅消息监听消费者
+     * 基于 {@link io.lettuce.core.cluster.RedisClusterClient} 实现的 redis 订阅者.
      * 
      * @author yangzexiong
+     * @see RedisSubscription
      */
-    static class RedisClusterSubListener extends RedisPubSubAdapter<String, String> {
+    static class LettuceClusterSubscription extends RedisPubSubAdapter<String, String> implements RedisSubscription {
 
-        private RedisClusterClient client;
+        private final RedisClusterClient client;
 
-        private String channel;
+        private final String channel;
 
         private Consumer<String> onMessageRun;
 
@@ -85,20 +75,21 @@ public class LettuceClusterAdapter implements RedisLockCommands {
 
         private boolean isSubscribed = false;
 
-        public RedisClusterSubListener(RedisClusterClient client, String channel, Consumer<String> onMessageRun) {
+        public LettuceClusterSubscription(RedisClusterClient client, String channel, Consumer<String> onMessageRun) {
             this.client = Objects.requireNonNull(client, "client must not be null");
             this.channel = Objects.requireNonNull(channel, "channel must not be null");
-            this.onMessageRun = Objects.requireNonNull(onMessageRun, "onMessageRun must not be null");
+            this.onMessageRun = onMessageRun;
         }
 
         @Override
         public void message(String channel, String message) {
-            if (this.channel.equals(channel)) {
+            if (onMessageRun != null) {
                 onMessageRun.accept(message);
             }
         }
 
-        public void subscribed() {
+        @Override
+        public void subscribe() {
             RedisClusterPubSubCommands<String, String> commands = getCommands();
             if (!isSubscribed()) {
                 isSubscribed = true;
@@ -109,7 +100,8 @@ public class LettuceClusterAdapter implements RedisLockCommands {
             }
         }
 
-        public void unsubscribed() {
+        @Override
+        public void unsubscribe() {
             try {
                 RedisClusterPubSubCommands<String, String> commands = getCommands();
                 commands.unsubscribe(channel);
@@ -127,6 +119,10 @@ public class LettuceClusterAdapter implements RedisLockCommands {
             return channel;
         }
 
+        public void setOnMessageRun(Consumer<String> onMessageRun) {
+            this.onMessageRun = onMessageRun;
+        }
+
         private RedisClusterPubSubCommands<String, String> getCommands() {
             if (pubSubCommands == null) {
                 StatefulRedisClusterPubSubConnection<String, String> pubSubConnection = client.connectPubSub();
@@ -135,7 +131,6 @@ public class LettuceClusterAdapter implements RedisLockCommands {
             }
             return pubSubCommands;
         }
-
     }
 
 }
