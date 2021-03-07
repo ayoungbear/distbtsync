@@ -4,43 +4,40 @@ import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
-import io.lettuce.core.cluster.RedisClusterClient;
-import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
-import io.lettuce.core.cluster.pubsub.api.sync.RedisClusterPubSubCommands;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
+import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
+import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
 
 /**
- * 基于 {@link io.lettuce.core.cluster.RedisClusterClient} 实现的 redis 订阅者.
+ * 基于 {@link io.lettuce.core.pubsub.RedisPubSubListener} 实现的 redis 订阅者基类.
  * 
  * @author yangzexiong
- * @see RedisSubscription
  */
-public class LettuceClusterSubscription extends RedisPubSubAdapter<String, String> implements RedisSubscription {
-
-    private final RedisClusterClient client;
+public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapter<String, String>
+        implements RedisSubscription {
 
     private final String channel;
 
     private Consumer<String> onMessageRun;
 
-    private StatefulRedisClusterPubSubConnection<String, String> pubSubConnection;
+    private StatefulRedisPubSubConnection<String, String> pubSubConnection;
 
     private Semaphore latch = new Semaphore(0);
 
     private volatile boolean isSubscribed = false;
 
-    public LettuceClusterSubscription(RedisClusterClient client, String channel, Consumer<String> onMessageRun) {
-        this.client = Objects.requireNonNull(client, "RedisClusterClient must not be null");
+    protected AbstractLettuceClientSubscription(String channel, Consumer<String> onMessageRun) {
         this.channel = Objects.requireNonNull(channel, "Channel must not be null");
         this.onMessageRun = onMessageRun;
     }
 
     @Override
     public void subscribe() {
-        RedisClusterPubSubCommands<String, String> commands = getCommands();
+        RedisPubSubCommands<String, String> commands = getCommands();
         if (!isSubscribed()) {
             isSubscribed = true;
             commands.subscribe(channel);
+            // 异步订阅, 在此阻塞
             latch.acquireUninterruptibly();
         } else {
             throw new IllegalMonitorStateException("Already in a subscription");
@@ -50,7 +47,7 @@ public class LettuceClusterSubscription extends RedisPubSubAdapter<String, Strin
     @Override
     public void unsubscribe() {
         try {
-            RedisClusterPubSubCommands<String, String> commands = getCommands();
+            RedisPubSubCommands<String, String> commands = getCommands();
             commands.unsubscribe(channel);
             isSubscribed = false;
         } finally {
@@ -79,22 +76,37 @@ public class LettuceClusterSubscription extends RedisPubSubAdapter<String, Strin
         this.onMessageRun = onMessageRun;
     }
 
-    private RedisClusterPubSubCommands<String, String> getCommands() {
-        if (pubSubConnection == null) {
-            StatefulRedisClusterPubSubConnection<String, String> pubSubConnection = client.connectPubSub();
-            pubSubConnection.addListener(this);
-            this.pubSubConnection = pubSubConnection;
-        }
+    protected RedisPubSubCommands<String, String> getCommands() {
+        StatefulRedisPubSubConnection<String, String> pubSubConnection = getPubSubConnection();
+        pubSubConnection.addListener(this);
         return pubSubConnection.sync();
     }
 
+    /**
+     * 提供 {@link io.lettuce.core.pubsub.StatefulRedisPubSubConnection} 连接
+     * @return
+     */
+    protected abstract StatefulRedisPubSubConnection<String, String> providePubSubConnection();
+
+    /**
+     * 去掉订阅后释放拦截器并关闭连接
+     */
     private void release() {
         latch.release();
         if (pubSubConnection != null) {
-            StatefulRedisClusterPubSubConnection<String, String> connection = this.pubSubConnection;
+            StatefulRedisPubSubConnection<String, String> connection = this.pubSubConnection;
             this.pubSubConnection = null;
             connection.close();
         }
+    }
+
+    private StatefulRedisPubSubConnection<String, String> getPubSubConnection() {
+        if (pubSubConnection == null) {
+            StatefulRedisPubSubConnection<String, String> pubSubConnection = providePubSubConnection();
+            pubSubConnection.addListener(this);
+            this.pubSubConnection = pubSubConnection;
+        }
+        return pubSubConnection;
     }
 
 }

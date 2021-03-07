@@ -82,7 +82,7 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
      */
     @Test
     public void testConcurrentCountUseLettuceCluster() throws Exception {
-        testConcurrentCount(() -> new RedisBasedLock(key, getLettuceClusterCommandsAdapter(), fair));
+        testConcurrentCount(() -> new RedisBasedLock(key, getLettuceClusterClientCommandsAdapter(), fair));
     }
 
     /**

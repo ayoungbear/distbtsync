@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
-import com.ayoungbear.distbtsync.redis.lock.sub.LettuceClusterSubscription;
+import com.ayoungbear.distbtsync.redis.lock.sub.LettuceClusterClientSubscription;
 import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
 
 import io.lettuce.core.ScriptOutputType;
@@ -20,13 +20,13 @@ import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
  * @author yangzexiong
  * @see io.lettuce.core.cluster.RedisClusterClient
  */
-public class LettuceClusterCommandsAdapter implements RedisLockCommands, Closeable {
+public class LettuceClusterClientCommandsAdapter implements RedisLockCommands, Closeable {
 
     private RedisClusterClient client;
 
     private volatile StatefulRedisClusterConnection<String, String> connection;
 
-    public LettuceClusterCommandsAdapter(RedisClusterClient client) {
+    public LettuceClusterClientCommandsAdapter(RedisClusterClient client) {
         this.client = Objects.requireNonNull(client, "RedisClusterClient must not be null");
     }
 
@@ -40,7 +40,7 @@ public class LettuceClusterCommandsAdapter implements RedisLockCommands, Closeab
 
     @Override
     public RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun) {
-        return new LettuceClusterSubscription(client, channel, onMessageRun);
+        return new LettuceClusterClientSubscription(client, channel, onMessageRun);
     }
 
     @Override

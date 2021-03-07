@@ -114,7 +114,7 @@ public class SecondKillTest extends BaseSpringRedisTest {
      */
     @Test
     public void testSecKillUseLettuceCluster() throws Exception {
-        testSecKill(() -> new RedisBasedLock(key, getLettuceClusterCommandsAdapter(), fair));
+        testSecKill(() -> new RedisBasedLock(key, getLettuceClusterClientCommandsAdapter(), fair));
     }
 
     /**

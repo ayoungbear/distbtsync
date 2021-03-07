@@ -6,11 +6,12 @@ package com.ayoungbear.distbtsync.redis.lock;
  * 
  * @author yangzexiong
  */
-public class JedisClusterRedisLockTest extends AbstractRedisBasedLockTest {
+public class JedisRedisLockTest extends AbstractRedisBasedLockTest {
 
     @Override
     protected RedisLock getRedisLock(String key) {
-        RedisLockCommands commands = getJedisClusterCommandsAdapter(); // 使用 jedis cluster 测试
+        RedisLockCommands commands = null;
+        commands = getJedisClusterCommandsAdapter(); // 使用 jedis cluster 测试
         // commands = getJedisPoolCommandsAdapter(); // 使用 jedis pool 测试
         return new RedisBasedLock(key, commands);
     }

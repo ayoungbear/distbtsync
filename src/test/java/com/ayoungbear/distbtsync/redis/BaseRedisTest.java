@@ -15,8 +15,11 @@ import org.redisson.config.Config;
 import com.ayoungbear.distbtsync.BaseTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisPoolCommandsAdapter;
-import com.ayoungbear.distbtsync.redis.lock.support.LettuceClusterCommandsAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.LettuceClientCommandsAdapter;
+import com.ayoungbear.distbtsync.redis.lock.support.LettuceClusterClientCommandsAdapter;
 
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.RedisClusterURIUtil;
 import redis.clients.jedis.HostAndPort;
@@ -30,12 +33,20 @@ import redis.clients.jedis.JedisPool;
  */
 public abstract class BaseRedisTest extends BaseTest {
 
+    /**
+     * redis 集群地址
+     */
     public static final String HOST_AND_PORT = "192.168.42.217:6379," + 
                                                "192.168.42.217:6380," + 
                                                "192.168.42.217:6381," + 
                                                "192.168.42.217:6382," + 
                                                "192.168.42.217:6383," + 
                                                "192.168.42.217:6384";
+
+    /**
+     * redis 单机地址
+     */
+    public static final String SINGLE_REDIS_HOST = "192.168.42.217:6370";
 
     protected static final List<HostAndPort> redisClusterNodes = Arrays.asList(HOST_AND_PORT.split(",")).stream()
             .map((hp) -> hp.split(":")).map((hp) -> new HostAndPort(hp[0], Integer.valueOf(hp[1])))
@@ -47,6 +58,8 @@ public abstract class BaseRedisTest extends BaseTest {
 
     protected static final RedisClusterClient redisClusterClient = newRedisClusterClient();
 
+    protected static final RedisClient redisClient = newRedisClient();
+
     protected static JedisCluster getJedisCluster(int maxTotal) {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
         config.setMaxTotal(maxTotal);
@@ -55,7 +68,7 @@ public abstract class BaseRedisTest extends BaseTest {
     }
 
     protected static JedisPool getJedisPool() {
-        JedisPool jedisPool = new JedisPool("192.168.42.217", 6370);
+        JedisPool jedisPool = new JedisPool("redis://" + SINGLE_REDIS_HOST);
         return jedisPool;
     }
 
@@ -77,6 +90,14 @@ public abstract class BaseRedisTest extends BaseTest {
         return RedisClusterClient.create(RedisClusterURIUtil.toRedisURIs(URI.create("redis://" + HOST_AND_PORT)));
     }
 
+    protected static RedisClient getRedisclient() {
+        return redisClient;
+    }
+
+    protected static RedisClient newRedisClient() {
+        return RedisClient.create(RedisURI.create("redis://" + SINGLE_REDIS_HOST));
+    }
+
     protected JedisClusterCommandsAdapter getJedisClusterCommandsAdapter() {
         return new JedisClusterCommandsAdapter(getJedisCluster(20));
     }
@@ -85,8 +106,12 @@ public abstract class BaseRedisTest extends BaseTest {
         return new JedisPoolCommandsAdapter(getJedisPool());
     }
 
-    protected LettuceClusterCommandsAdapter getLettuceClusterCommandsAdapter() {
-        return new LettuceClusterCommandsAdapter(getRedisClusterClient());
+    protected LettuceClusterClientCommandsAdapter getLettuceClusterClientCommandsAdapter() {
+        return new LettuceClusterClientCommandsAdapter(getRedisClusterClient());
+    }
+
+    protected LettuceClientCommandsAdapter getLettuceClientCommandsAdapter() {
+        return new LettuceClientCommandsAdapter(getRedisclient());
     }
 
 }
