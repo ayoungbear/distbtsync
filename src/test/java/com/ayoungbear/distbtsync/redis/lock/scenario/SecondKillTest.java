@@ -6,7 +6,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -16,7 +19,6 @@ import org.junit.Test;
 import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
 import com.ayoungbear.distbtsync.redis.lock.RedisLock;
-import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 
 /**
@@ -33,24 +35,41 @@ public class SecondKillTest extends BaseSpringRedisTest {
      */
     private final String key = "SecKillLockKey";
     /**
+     * 分布式锁模式-公平/非公平
+     */
+    private static boolean fair = false;
+
+    /**
+     * 秒杀商品的数量
+     */
+    private static int goodsNum = 10;
+    /**
      * 秒杀的商品货物存量
      */
-    private static Integer goods = 0;
+    private static int goods = 0;
+    /**
+     * 秒杀系统的应用服务节点数
+     */
+    private static int nodeNum = 10;
+    /**
+     * 每个服务节点处理的并发请求数(线程数)
+     */
+    private static int requestNum = 1000;
+    /**
+     * 缓存用于判断是否还有商品, 如果没有了直接秒杀失败, 无需再等待了
+     */
+    private static boolean hasGoods = true;
 
     /**
      * 成功抢到商品的线程名与抢到的商品数
      */
     private Map<String, Integer> luckyDogs = new ConcurrentHashMap<>();
 
-    /**
-     * 缓存用于判断是否还有商品, 如果没有了直接秒杀失败, 无需再等待了
-     */
-    private boolean hasGoods = true;
-
     @Before
     public void setUp() throws Exception {
         jedisCluster.del(key);
         luckyDogs.clear();
+        goods = goodsNum;
         hasGoods = true;
     }
 
@@ -58,35 +77,72 @@ public class SecondKillTest extends BaseSpringRedisTest {
     public void tearDown() throws Exception {
         jedisCluster.del(key);
         luckyDogs.clear();
+        goods = goodsNum;
         hasGoods = true;
+    }
+
+    /**
+     * 使用 JedisCluster 来测试分布式锁控制秒杀场景, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testSecKillUseJedisCluster() throws Exception {
+        testSecKill(() -> new RedisBasedLock(key, new JedisClusterCommandsAdapter(getJedisCluster(2000)), fair));
+    }
+
+    /**
+     * 使用 RedisConnection 来测试分布式锁控制秒杀场景, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testSecKillUseRedisConnection() throws Exception {
+        testSecKill(() -> new RedisBasedLock(key, getRedisConnectionCommandsAdapter(), fair));
+    }
+
+    /**
+     * 使用 LettuceCluster 来测试分布式锁控制秒杀场景, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testSecKillUseLettuceCluster() throws Exception {
+        testSecKill(() -> new RedisBasedLock(key, getLettuceClusterCommandsAdapter(), fair));
+    }
+
+    /**
+     * 使用 Redisson 来测试分布式锁控制秒杀场景, 主要用于比较
+     * @throws Exception
+     */
+    // @Test
+    public void testSecKillUseRedisson() throws Exception {
+        testSecKill(() -> fair ? getRedissonClient(2000).getFairLock(key) : getRedissonClient(2000).getLock(key));
+    }
+
+    /**
+     * 使用 ReentrantLock 来测试分布式锁控制秒杀场景, 重入锁只能使共用该锁的线程之间达成同步, 也就是分布式场景中该锁是没法实现同步的
+     * @throws Exception
+     */
+    // @Test
+    public void testSecKillUseReentrantLock() throws Exception {
+        testSecKill(() -> new ReentrantLock());
     }
 
     /**
      * 模拟测试秒杀单个商品场景, 配置原因只能模拟简单的有限的并发场景.
      * 该测试模拟的是后台并发处理秒杀请求的情况, 前端的限流分流场景不在考虑范围内.
      * 
-     * <p>分布式锁的阻塞队列本身提供了缓冲, 避免大量请求消耗资源导致服务崩溃.
+     * 分布式锁的阻塞队列本身提供了缓冲, 避免大量请求消耗资源导致服务崩溃.
      * 商品在被秒杀完后, 可利用加锁超时方法 {@link RedisLock#tryLock(long, TimeUnit)} 的特性来加快处理请求的速度,
      * 在一定时间内没加锁成功则判断商品是否被秒空, 如被秒空则秒杀失败直接返回.
      * 
-     * <p>假设商品数量有很多呢?
+     * 假设商品数量有很多呢?
      * 分布式锁会导致同时只能有一个线程去消费, 速度被限制住了.
      * 针对这种场景可以考虑将秒杀商品分块, 比如总共有100个商品, 将商品分成10份每份10个,
      * 每份使用不同的分布式锁控制同步, 那么消费的速度也就提升上去了.
      * 
+     * @param lockSupplier 提供具体锁的实现
      * @throws Exception
      */
-    @Test
-    public void testSecKill() throws Exception {
-        // 秒杀商品的数量
-        int goodsNum = 10;
-        // 秒杀系统的应用服务节点数
-        int nodeNum = 10;
-        // 每个服务节点处理的并发请求数(线程数)
-        int requestNum = 1000;
-
-        // 设置秒杀存量商品数
-        goods = goodsNum;
+    protected void testSecKill(Supplier<Lock> lockSupplier) throws Exception {
         // 成功率
         BigDecimal rate = BigDecimal.valueOf(goodsNum).multiply(new BigDecimal("100.00")).divide(
                 BigDecimal.valueOf(nodeNum).multiply(BigDecimal.valueOf(requestNum)), 2, BigDecimal.ROUND_HALF_UP);
@@ -101,7 +157,7 @@ public class SecondKillTest extends BaseSpringRedisTest {
             run(() -> {
                 try {
                     // 每个节点另起多个线程, 使用不同的分布式锁实例
-                    doSecKill(requestNum, beginTime, goodsCountDownLatch);
+                    doSecKill(requestNum, beginTime, goodsCountDownLatch, lockSupplier);
                     countDownLatch.countDown();
                 } catch (Exception e) {
                     logger.error("Do SecKill run error", e);
@@ -123,12 +179,12 @@ public class SecondKillTest extends BaseSpringRedisTest {
 
         // 总共抢到的商品数
         int actGoodsNum = luckyDogs.values().stream().mapToInt((num) -> num.intValue()).sum();
-        logger.info("SecKill end the actual goods num={} and congratulations the lucky dogs! {}", actGoodsNum,
-                getLukyNames());
+        logger.info("SecKill end use lock={} the actual goods num={} and congratulations the lucky dogs! {}",
+                lockSupplier.get().getClass().getSimpleName(), actGoodsNum, getLukyNames());
 
         // 断言
         Assert.assertEquals(goodsNum, actGoodsNum);
-        Assert.assertEquals(0, goods.intValue());
+        Assert.assertEquals(0, goods);
     }
     
     /**
@@ -142,26 +198,9 @@ public class SecondKillTest extends BaseSpringRedisTest {
      * @param goodsCountDownLatch 秒杀成功通知
      * @throws Exception
      */
-    private void doSecKill(int requestNum, long beginTime, CountDownLatch goodsCountDownLatch) throws Exception {
-        // 分布式锁模式-公平/非公平
-        boolean fair = true;
-
-        RedisLockCommands commands = null;
-        // commands = getRedisConnectionCommandsAdapter();
-        commands = new JedisClusterCommandsAdapter(getJedisCluster(1000));
-        // commands = getLettuceClusterCommandsAdapter();
-
-        // ----选择需测试的分布式锁实现----
-        RedisBasedLock lock = new RedisBasedLock(key, commands, fair);
-
-        // redisson 可能会出现大量RedisTimeoutException
-        // RLock lock = fair ? getRedissonClient(2000).getFairLock(key) : getRedissonClient(2000).getLock(key);
-
-        // 共享阻塞队列形式
-        // RedisBasedLock lock = RedisBasedLock.newSharedLock(key, commands);
-
-        // 重入锁只能使共用该锁的线程之间达成同步, 也就是分布式场景中该锁是没法实现同步的
-        // Lock lock = new ReentrantLock(fair);
+    private void doSecKill(int requestNum, long beginTime, CountDownLatch goodsCountDownLatch,
+            Supplier<Lock> lockSupplier) throws Exception {
+        Lock lock = lockSupplier.get();
 
         CountDownLatch countDownLatch = new CountDownLatch(requestNum);
         for (int n = 1; n <= requestNum; n++) {
@@ -181,7 +220,7 @@ public class SecondKillTest extends BaseSpringRedisTest {
                                     break;
                                 }
                                 // 获取当前商品数
-                                int goodsNum = goods.intValue();
+                                int goodsNum = goods;
                                 if (goodsNum <= 0) {
                                     // 没有商品了, 更新缓存标志, 没必要再抢了
                                     hasGoods = false;

@@ -45,6 +45,8 @@ public abstract class BaseRedisTest extends BaseTest {
 
     protected static final JedisPool jedisPool = getJedisPool();
 
+    protected static final RedisClusterClient redisClusterClient = newRedisClusterClient();
+
     protected static JedisCluster getJedisCluster(int maxTotal) {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
         config.setMaxTotal(maxTotal);
@@ -68,6 +70,10 @@ public abstract class BaseRedisTest extends BaseTest {
     }
 
     protected static RedisClusterClient getRedisClusterClient() {
+        return redisClusterClient;
+    }
+
+    protected static RedisClusterClient newRedisClusterClient() {
         return RedisClusterClient.create(RedisClusterURIUtil.toRedisURIs(URI.create("redis://" + HOST_AND_PORT)));
     }
 

@@ -2,7 +2,10 @@ package com.ayoungbear.distbtsync.redis.lock.scenario;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -11,7 +14,6 @@ import org.junit.Test;
 
 import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
-import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 
 /**
@@ -30,6 +32,10 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
      * 公共计数变量
      */
     private static Integer count = 0;
+    /**
+     * 分布式锁模式-公平/非公平
+     */
+    private static boolean fair = false;
 
     @Before
     public void setUp() throws Exception {
@@ -43,14 +49,61 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
     }
 
     /**
+     * 使用 JedisCluster 来测试分布式锁并发计数, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentCountUseJedisCluster() throws Exception {
+        testConcurrentCount(
+                () -> new RedisBasedLock(key, new JedisClusterCommandsAdapter(getJedisCluster(1000)), fair));
+    }
+
+    /**
+     * 使用 RedisConnection 来测试分布式锁并发计数, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentCountUseRedisConnection() throws Exception {
+        testConcurrentCount(() -> new RedisBasedLock(key, getRedisConnectionCommandsAdapter(), fair));
+    }
+
+    /**
+     * 使用 LettuceCluster 来测试分布式锁并发计数, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentCountUseLettuceCluster() throws Exception {
+        testConcurrentCount(() -> new RedisBasedLock(key, getLettuceClusterCommandsAdapter(), fair));
+    }
+
+    /**
+     * 使用 Redisson 来测试分布式锁并发计数, 主要用于比较
+     * @throws Exception
+     */
+    // @Test
+    public void testConcurrentCountUseRedisson() throws Exception {
+        testConcurrentCount(
+                () -> fair ? getRedissonClient(1000).getFairLock(key) : getRedissonClient(1000).getLock(key));
+    }
+
+    /**
+     * 使用 ReentrantLock 来测试分布式锁并发计数, 重入锁只能使共用该锁的线程之间达成同步, 也就是分布式场景中该锁是没法实现同步的
+     * @throws Exception
+     */
+    // @Test
+    public void testConcurrentCountUseReentrantLock() throws Exception {
+        testConcurrentCount(() -> new ReentrantLock());
+    }
+
+    /**
      * 模拟测试多节点+多线程的分布式并发计数, 并断言最终数值的准确性.
      * 可以通过日志观察到计数过程和执行耗时.
      * 如果增加了测试线程数, 注意增加连接数限制.
      * 
+     * @param lockSupplier 提供具体锁的实现
      * @throws Exception
      */
-    @Test
-    public void testConcurrentCount() throws Exception {
+    protected void testConcurrentCount(Supplier<Lock> lockSupplier) throws Exception {
         // 分布式应用节点数, 限于单机情况, 用线程来模拟分布式各应用节点
         int nodeNum = 10;
         // 每个应用节点多线程并发计数的线程数
@@ -65,7 +118,7 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
             run(() -> {
                 try {
                     // 每个节点另起多个线程, 使用不同的分布式锁实例
-                    doConcurrentCount(threadNum, countTimes, beginTime);
+                    doConcurrentCount(threadNum, countTimes, beginTime, lockSupplier);
                     countDownLatch.countDown();
                     ;
                 } catch (Exception e) {
@@ -74,8 +127,8 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
             }, "node-" + n);
         }
         countDownLatch.await();
-        logger.info("Concurrent count test end cost {}ms sharedCount={}.", System.currentTimeMillis() - beginTime,
-                count);
+        logger.info("Concurrent count test end use lock={} cost {}ms sharedCount={}.",
+                lockSupplier.get().getClass().getSimpleName(), System.currentTimeMillis() - beginTime, count);
         // 断言最终计数的准确性
         Assert.assertEquals(nodeNum * threadNum * countTimes, count.intValue());
     }
@@ -89,25 +142,10 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
      * @param beginTime 计数开始时间
      * @throws Exception
      */
-    private void doConcurrentCount(int threadNum, int countTimes, long beginTime) throws Exception {
-        // 分布式锁模式-公平/非公平
-        boolean fair = false;
-
-        RedisLockCommands commands = null;
-        // commands = getRedisConnectionCommandsAdapter();
-        commands = new JedisClusterCommandsAdapter(getJedisCluster(1000)); 
-        // commands = getLettuceClusterCommandsAdapter();
-
-        // ----选择需测试的分布式锁实现----
-        RedisBasedLock lock = new RedisBasedLock(key, commands, fair);
-        // RLock lock = fair ? getRedissonClient(1000).getFairLock(key) : getRedissonClient(1000).getLock(key);
+    private void doConcurrentCount(int threadNum, int countTimes, long beginTime, Supplier<Lock> lockSupplier)
+            throws Exception {
+        Lock lock = lockSupplier.get();
         
-        // 共享阻塞队列形式
-        // RedisBasedLock lock = RedisBasedLock.newSharedLock(key, commands);
-
-        // 重入锁只能使共用该锁的线程之间达成同步, 也就是分布式场景中该锁是没法实现同步的
-        // Lock lock = new ReentrantLock();
-
         CountDownLatch countDownLatch = new CountDownLatch(threadNum);
         for (int n = 1; n <= threadNum; n++) {
             run(() -> {
@@ -134,6 +172,5 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
         }
         countDownLatch.await();
     }
-
 
 }

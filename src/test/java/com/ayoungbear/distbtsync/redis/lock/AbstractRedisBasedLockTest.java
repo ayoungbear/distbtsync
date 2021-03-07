@@ -13,17 +13,15 @@ import org.slf4j.LoggerFactory;
 
 import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
-import com.ayoungbear.distbtsync.redis.lock.support.RedisConnectionCommandsAdapter;
 
 /**
  * 基于 redis 的可重入分布式锁单元测试
  * 
  * @author yangzexiong
  */
+public abstract class AbstractRedisBasedLockTest extends BaseSpringRedisTest {
 
-public class RedisBasedLockTest extends BaseSpringRedisTest {
-
-    public static final Logger logger = LoggerFactory.getLogger(RedisBasedLockTest.class);
+    public static final Logger logger = LoggerFactory.getLogger(AbstractRedisBasedLockTest.class);
 
     protected String key = "myLock";
     
@@ -37,14 +35,12 @@ public class RedisBasedLockTest extends BaseSpringRedisTest {
         getRedisLock().forceUnlock();
     }
 
-    protected RedisLock getRedisLock(String key) {
-        RedisLockCommands commands = null;
-        // commands = getJedisClusterCommandsAdapter(); // 使用 jedis cluster 测试
-        // commands = getJedisPoolCommandsAdapter(); // 使用 jedis pool 测试
-        // commands = getLettuceClusterCommandsAdapter(); // 使用 Lettuce 测试
-        commands = new RedisConnectionCommandsAdapter(redisConnectionFactory); // 使用 RedisConnection 测试, 默认会使用 LettuceConnection
-        return new RedisBasedLock(key, commands);
-    }
+    /**
+     * 获取分布式锁
+     * @param key
+     * @return
+     */
+    protected abstract RedisLock getRedisLock(String key);
 
     protected RedisLock getRedisLock() {
         return getRedisLock(key);

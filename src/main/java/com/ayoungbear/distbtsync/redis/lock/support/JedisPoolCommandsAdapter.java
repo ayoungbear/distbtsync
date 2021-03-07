@@ -90,14 +90,20 @@ public class JedisPoolCommandsAdapter implements RedisLockCommands {
         }
 
         @Override
+        public boolean isSubscribed() {
+            return super.isSubscribed();
+        }
+
+        @Override
+        public String getChannel() {
+            return channel;
+        }
+
+        @Override
         public void onMessage(String channel, String message) {
             if (onMessageRun != null) {
                 onMessageRun.accept(message);
             }
-        }
-
-        public String getChannel() {
-            return channel;
         }
 
         public void setOnMessageRun(Consumer<String> onMessageRun) {

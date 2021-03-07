@@ -79,10 +79,6 @@ public abstract class AbstractRedisLock implements RedisLock {
      * 锁的失效时间本地缓存(ms)
      */
     private volatile long ttl = -1;
-    /**
-     * 如果锁没有设置过期时间, 使用该值阻塞超时时间(30s), 避免死锁
-     */
-    private long defaultTimeoutMillisForUnlimitTtl = 5000;
 
     protected AbstractRedisLock(String key, RedisLockCommands commands) {
         this.key = Objects.requireNonNull(key, "Key must not be null");
@@ -311,14 +307,6 @@ public abstract class AbstractRedisLock implements RedisLock {
             return localIdentifierMap;
         }
 
-    }
-
-    public void setDefaultTimeoutMillisForUnlimitTtl(long defaultTimeoutMillisForUnlimitTtl) {
-        this.defaultTimeoutMillisForUnlimitTtl = defaultTimeoutMillisForUnlimitTtl;
-    }
-
-    public long getDefaultTimeoutMillisForUnlimitTtl() {
-        return defaultTimeoutMillisForUnlimitTtl;
     }
 
 }

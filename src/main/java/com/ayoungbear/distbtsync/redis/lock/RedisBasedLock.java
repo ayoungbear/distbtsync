@@ -241,15 +241,9 @@ public class RedisBasedLock extends AbstractRedisLock {
                     }
                     // 当剩余时间过小则继续自旋不再阻塞
                     if (nanosTtl < 0 || nanosTtl > spinForBlockTimeoutThreshold) {
-                        sync.activeSubWorker(commands, channel);
-                        if (nanosTtl < 0) {
-                            // 如果锁没有设置过期时间, 使用该值阻塞超时时间, 防止死锁, 因为有可能在初始化订阅的过程中发生解锁
-                            long defaultTtl = getDefaultTimeoutMillisForUnlimitTtl();
-                            if (defaultTtl > 0) {
-                                nanosTtl = TimeUnit.MILLISECONDS.toNanos(getDefaultTimeoutMillisForUnlimitTtl());
-                            }
+                        if (sync.activeSubWorker(commands, channel)) {
+                            sync.await(interruptible, nanosTtl);
                         }
-                        sync.await(interruptible, nanosTtl);
                     }
 
                     if (interruptible && Thread.interrupted()) {
@@ -346,6 +340,9 @@ public class RedisBasedLock extends AbstractRedisLock {
 
         private final String key;
 
+        /**
+         * 是否共享用队列
+         */
         private final boolean shared;
 
         /**
@@ -514,18 +511,18 @@ public class RedisBasedLock extends AbstractRedisLock {
          * 启动订阅者, 监听解锁信息
          * @param commands
          * @param channel
-         * @return 是否已初始化订阅者
+         * @return 订阅者是否已正常开始订阅
          */
-        public void activeSubWorker(RedisLockCommands commands, String channel) {
-            if (subWorker == null || !subWorker.isAlive()) {
+        public boolean activeSubWorker(RedisLockCommands commands, String channel) {
+            if (!isSubWorkerAlive()) {
                 synchronized (this) {
-                    if (subWorker == null || !subWorker.isAlive()) {
-                        RedisSubscription subscription = commands.getSubscription(channel, this::onMessageRun);
-                        this.subWorker = new SubWorker(subscription);
-                        this.subWorker.subscribe();
+                    if (!isSubWorkerAlive()) {
+                        RedisSubscription subscription = commands.getSubscription(channel, this::onReleaseMessage);
+                        this.subWorker = SubWorker.createAndStart(subscription);
                     }
                 }
             }
+            return subWorker.isSubscribed();
         }
 
         /**
@@ -546,61 +543,85 @@ public class RedisBasedLock extends AbstractRedisLock {
          * 收到解锁消息后唤醒等待线程竞争锁
          * @param message
          */
-        private void onMessageRun(String message) {
+        private void onReleaseMessage(String message) {
             if (getKey().equals(message)) {
                 signal();
             }
         }
 
+        private boolean isSubWorkerAlive() {
+            return subWorker != null && subWorker.isAlive() && !subWorker.isTerminated();
+        }
+
+    }
+
+    /**
+     * 订阅解锁信息工作线程
+     * 
+     * @author yangzexiong
+     */
+    static class SubWorker extends Thread {
+
         /**
-         * 订阅解锁信息工作线程
-         * 
-         * @author yangzexiong
+         * 订阅者
          */
-        private class SubWorker extends Thread {
+        private RedisSubscription subscription;
 
-            /**
-             * 订阅者
-             */
-            private RedisSubscription subscription;
+        private volatile boolean terminated = false;
 
-            private volatile boolean finish = false;
+        public SubWorker(RedisSubscription subscription) {
+            super();
+            super.setName("RedisBasedLock$SubWorker$from-" + Thread.currentThread().getName() + "$" + super.getName());
+            this.subscription = subscription;
+        }
 
-            public SubWorker(RedisSubscription subscription) {
-                super();
-                super.setName(
-                        "RedisBasedLock$SubWorker$from-" + Thread.currentThread().getName() + "$" + super.getName());
-                this.subscription = subscription;
-            }
+        public static SubWorker createAndStart(RedisSubscription subscription) {
+            return new SubWorker(subscription).subscribe();
+        }
 
-            @Override
-            public void run() {
-                try {
-                    while (!finish) {
-                        subscription.subscribe();
-                        if (Thread.interrupted()) {
-                            break;
-                        }
+        @Override
+        public void run() {
+            try {
+                while (!isTerminated()) {
+                    subscription.subscribe();
+                    if (Thread.interrupted()) {
+                        break;
                     }
-                } catch (Exception e) {
-                    subWorker = null;
-                    throw e;
                 }
-            }
-
-            public void subscribe() {
-                this.start();
-            }
-
-            public void unsubscribe() {
-                try {
-                    finish = true;
-                    subscription.unsubscribe();
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
+            } catch (Exception e) {
+                throw e;
+            } finally {
+                terminate();
             }
         }
+
+        public SubWorker subscribe() {
+            this.start();
+            return this;
+        }
+
+        public SubWorker unsubscribe() {
+            try {
+                terminate();
+                subscription.unsubscribe();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+            return this;
+        }
+
+        public boolean isTerminated() {
+            return terminated;
+        }
+
+        public boolean isSubscribed() {
+            return subscription.isSubscribed();
+        }
+
+        private void terminate() {
+            terminated = true;
+        }
+
     }
 
 }

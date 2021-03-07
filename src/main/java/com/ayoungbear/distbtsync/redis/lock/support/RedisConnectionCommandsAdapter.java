@@ -116,7 +116,7 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
 
         @Override
         public void subscribe() {
-            if (!redisConnection.isSubscribed()) {
+            if (!isSubscribed()) {
                 // RedisConnection 根据实现类不同, 订阅方法可能是异步的, 比如 LettuceConnection
                 redisConnection.subscribe(this, serializer.serialize(channel));
                 // 如果是异步订阅, 那么订阅线程在此阻塞, 等待解除订阅
@@ -128,7 +128,7 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
 
         @Override
         public void unsubscribe() {
-            if (redisConnection.isSubscribed()) {
+            if (isSubscribed()) {
                 try {
                     Subscription subscription = redisConnection.getSubscription();
                     if (subscription != null) {
@@ -148,6 +148,12 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
             }
         }
 
+        @Override
+        public boolean isSubscribed() {
+            return redisConnection.isSubscribed();
+        }
+
+        @Override
         public String getChannel() {
             return channel;
         }
