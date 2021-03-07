@@ -1,4 +1,4 @@
-package com.ayoungbear.distbtsync.redis.lock;
+package com.ayoungbear.distbtsync.redis.lock.sub;
 
 /**
  * 定义 Redis 单频道订阅功能操作接口.

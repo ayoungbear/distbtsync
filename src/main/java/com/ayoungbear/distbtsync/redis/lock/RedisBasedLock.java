@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
+import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
+
 /**
  * 基于 redis 的可重入分布式锁.
  * 可通过 {@link #newSharedLock(String, RedisLockCommands)} 方式来获取使用

@@ -2,6 +2,8 @@ package com.ayoungbear.distbtsync.redis.lock;
 
 import java.util.function.Consumer;
 
+import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
+
 /**
  * 定义 Redis 分布式锁实现所需的基础操作接口.
  * 

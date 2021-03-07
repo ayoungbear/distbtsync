@@ -4,11 +4,11 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
-import com.ayoungbear.distbtsync.redis.lock.RedisSubscription;
+import com.ayoungbear.distbtsync.redis.lock.sub.JedisPoolSubscription;
+import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPubSub;
 
 /**
  * 用 {@link redis.clients.jedis.JedisPool} 实现的 redis 分布式锁操作接口的适配器.
@@ -21,7 +21,7 @@ public class JedisPoolCommandsAdapter implements RedisLockCommands {
     private JedisPool jedisPool;
 
     public JedisPoolCommandsAdapter(JedisPool jedisPool) {
-        this.jedisPool = Objects.requireNonNull(jedisPool, "jedisPool must not be null");
+        this.jedisPool = Objects.requireNonNull(jedisPool, "JedisPool must not be null");
     }
 
     @Override
@@ -46,70 +46,6 @@ public class JedisPoolCommandsAdapter implements RedisLockCommands {
             System.arraycopy(args, 0, newArgs, 1, args.length);
         }
         return newArgs;
-    }
-
-    /**
-     * 基于 {@link redis.clients.jedis.JedisPool} 实现的 redis 订阅者.
-     * 
-     * @author yangzexiong
-     * @see RedisSubscription
-     */
-    public static class JedisPoolSubscription extends JedisPubSub implements RedisSubscription {
-
-        public JedisPoolSubscription(JedisPool jedisPool, String channel, Consumer<String> onMessageRun) {
-            this.jedisPool = Objects.requireNonNull(jedisPool, "jedisPool must not be null");
-            this.channel = Objects.requireNonNull(channel, "channel must not be null");
-            this.onMessageRun = onMessageRun;
-        }
-
-        private final JedisPool jedisPool;
-
-        private final String channel;
-
-        private Consumer<String> onMessageRun;
-
-        @Override
-        public void subscribe() {
-            if (!isSubscribed()) {
-                Jedis jedis = jedisPool.getResource();
-                try {
-                    jedis.subscribe(this, channel);
-                } finally {
-                    jedis.close();
-                }
-            } else {
-                throw new IllegalMonitorStateException("Already in a subscription");
-            }
-        }
-
-        @Override
-        public void unsubscribe() {
-            if (isSubscribed()) {
-                super.unsubscribe();
-            }
-        }
-
-        @Override
-        public boolean isSubscribed() {
-            return super.isSubscribed();
-        }
-
-        @Override
-        public String getChannel() {
-            return channel;
-        }
-
-        @Override
-        public void onMessage(String channel, String message) {
-            if (onMessageRun != null) {
-                onMessageRun.accept(message);
-            }
-        }
-
-        public void setOnMessageRun(Consumer<String> onMessageRun) {
-            this.onMessageRun = onMessageRun;
-        }
-
     }
 
 }
