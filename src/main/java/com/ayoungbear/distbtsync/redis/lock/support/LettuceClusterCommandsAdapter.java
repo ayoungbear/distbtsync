@@ -149,7 +149,7 @@ public class LettuceClusterCommandsAdapter implements RedisLockCommands, Closeab
             if (pubSubConnection != null) {
                 StatefulRedisClusterPubSubConnection<String, String> connection = this.pubSubConnection;
                 this.pubSubConnection = null;
-                connection.closeAsync();
+                connection.close();
             }
         }
 

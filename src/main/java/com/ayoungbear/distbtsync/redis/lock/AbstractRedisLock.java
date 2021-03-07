@@ -103,10 +103,10 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 获取锁失效时间缓存(ms)
+     * 获取锁失效时间缓存(ms), 在 尝试加锁 后才会更新远程锁的失效时间
      * @return the ttl
      */
-    public long getTtl() {
+    protected long getTtl() {
         return ttl;
     }
 
