@@ -81,8 +81,8 @@ public abstract class AbstractRedisLock implements RedisLock {
     private volatile long ttl = -1;
 
     protected AbstractRedisLock(String key, RedisLockCommands commands) {
-        this.key = Objects.requireNonNull(key, "Key must not be null");
-        this.commands = Objects.requireNonNull(commands, "Redis commands adapter must not be null");
+        this.key = Objects.requireNonNull(key, "key must not be null");
+        this.commands = Objects.requireNonNull(commands, "redis lock commands adapter must not be null");
         this.id = key + ":" + UUID.randomUUID().toString() + ":";
         this.channel = CHANNEL_PREFIX + getLockName();
     }
@@ -232,7 +232,8 @@ public abstract class AbstractRedisLock implements RedisLock {
      * @return
      */
     protected final String eval(String script, String key, String... args) {
-        return commands.eval(script, key, args);
+        String result = commands.eval(script, key, args);
+        return result;
     }
 
     /**

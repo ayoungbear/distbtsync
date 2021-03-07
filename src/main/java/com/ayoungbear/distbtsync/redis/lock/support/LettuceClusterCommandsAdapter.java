@@ -30,7 +30,7 @@ public class LettuceClusterCommandsAdapter implements RedisLockCommands, Closeab
     private volatile StatefulRedisClusterConnection<String, String> connection;
 
     public LettuceClusterCommandsAdapter(RedisClusterClient client) {
-        this.client = Objects.requireNonNull(client, "RedisClusterClient must not be null");
+        this.client = Objects.requireNonNull(client, "client must not be null");
     }
 
     @Override

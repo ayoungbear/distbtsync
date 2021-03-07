@@ -18,10 +18,10 @@ import redis.clients.jedis.JedisPubSub;
  */
 public class JedisPoolCommandsAdapter implements RedisLockCommands {
 
-    private final JedisPool jedisPool;
+    private JedisPool jedisPool;
 
     public JedisPoolCommandsAdapter(JedisPool jedisPool) {
-        this.jedisPool = Objects.requireNonNull(jedisPool, "JedisPool must not be null");
+        this.jedisPool = Objects.requireNonNull(jedisPool, "jedisPool must not be null");
     }
 
     @Override
@@ -57,8 +57,8 @@ public class JedisPoolCommandsAdapter implements RedisLockCommands {
     public static class JedisPoolSubscription extends JedisPubSub implements RedisSubscription {
 
         public JedisPoolSubscription(JedisPool jedisPool, String channel, Consumer<String> onMessageRun) {
-            this.jedisPool = Objects.requireNonNull(jedisPool, "Jedis must not be null");
-            this.channel = Objects.requireNonNull(channel, "Channel must not be null");
+            this.jedisPool = Objects.requireNonNull(jedisPool, "jedisPool must not be null");
+            this.channel = Objects.requireNonNull(channel, "channel must not be null");
             this.onMessageRun = onMessageRun;
         }
 

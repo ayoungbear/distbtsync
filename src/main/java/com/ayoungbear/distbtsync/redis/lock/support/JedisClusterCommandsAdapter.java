@@ -17,10 +17,10 @@ import redis.clients.jedis.JedisPubSub;
  */
 public class JedisClusterCommandsAdapter implements RedisLockCommands {
 
-    private final JedisCluster jedisCluster;
+    private JedisCluster jedisCluster;
 
     public JedisClusterCommandsAdapter(JedisCluster jedisCluster) {
-        this.jedisCluster = Objects.requireNonNull(jedisCluster, "JedisCluster must not be null");
+        this.jedisCluster = Objects.requireNonNull(jedisCluster, "jedisCluster must not be null");
     }
 
     @Override
@@ -53,8 +53,8 @@ public class JedisClusterCommandsAdapter implements RedisLockCommands {
 
         public JedisClusterSubscription(JedisCluster jedisCluster, String channel,
                 Consumer<String> onMessageRun) {
-            this.jedisCluster = Objects.requireNonNull(jedisCluster, "JedisCluster must not be null");
-            this.channel = Objects.requireNonNull(channel, "Channel must not be null");
+            this.jedisCluster = Objects.requireNonNull(jedisCluster, "jedisCluster must not be null");
+            this.channel = Objects.requireNonNull(channel, "channel must not be null");
             this.onMessageRun = onMessageRun;
         }
 

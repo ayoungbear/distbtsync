@@ -528,6 +528,7 @@ public abstract class AbstractRedisBasedLockTest extends BaseSpringRedisTest {
         lock.unlock();
         Assert.assertEquals(false, lock.isHeldLock());
         Assert.assertEquals(0, lock.getHoldCount());
+        // System.out.println("end");
         t1.join();
         t2.join();
     }

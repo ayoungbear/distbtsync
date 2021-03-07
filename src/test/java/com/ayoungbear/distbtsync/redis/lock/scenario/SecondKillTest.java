@@ -37,7 +37,7 @@ public class SecondKillTest extends BaseSpringRedisTest {
     /**
      * 分布式锁模式-公平/非公平
      */
-    private static boolean fair = false;
+    private static boolean fair = true;
 
     /**
      * 秒杀商品的数量
@@ -97,6 +97,15 @@ public class SecondKillTest extends BaseSpringRedisTest {
     @Test
     public void testSecKillUseRedisConnection() throws Exception {
         testSecKill(() -> new RedisBasedLock(key, getRedisConnectionCommandsAdapter(), fair));
+    }
+
+    /**
+     * 使用 RedisTemplate 来测试分布式锁控制秒杀场景, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testSecKillUseRedisTemplate() throws Exception {
+        testSecKill(() -> new RedisBasedLock(key, getRedisTemplateCommandsAdapter(), fair));
     }
 
     /**

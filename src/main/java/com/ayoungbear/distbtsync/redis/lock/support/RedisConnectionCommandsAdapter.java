@@ -34,17 +34,17 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
     private StringRedisSerializer serializer = new StringRedisSerializer();
 
     public RedisConnectionCommandsAdapter(RedisConnection redisConnection) {
-        Assert.notNull(redisConnection, () -> "RedisConnection must not be null");
+        Assert.notNull(redisConnection, () -> "redisConnection must not be null");
         this.connectionSupplier = SingletonSupplier.of(redisConnection);
     }
 
     public RedisConnectionCommandsAdapter(Supplier<RedisConnection> redisConnectionSupplier) {
-        Assert.notNull(redisConnectionSupplier, () -> "RedisConnection supplier must not be null");
+        Assert.notNull(redisConnectionSupplier, () -> "redisConnection supplier must not be null");
         this.connectionSupplier = redisConnectionSupplier;
     }
 
     public RedisConnectionCommandsAdapter(RedisConnectionFactory redisConnectionFactory) {
-        Assert.notNull(redisConnectionFactory, () -> "RedisConnectionFactory must not be null");
+        Assert.notNull(redisConnectionFactory, () -> "redisConnectionFactory must not be null");
         this.connectionSupplier = () -> redisConnectionFactory.getConnection();
     }
 
@@ -109,8 +109,8 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
 
         public RedisConnectionSubscription(RedisConnection redisConnection, String channel,
                 Consumer<String> onMessageRun) {
-            this.redisConnection = Objects.requireNonNull(redisConnection, "RedisConnection must not be null");
-            this.channel = Objects.requireNonNull(channel, "Channel must not be null");
+            this.redisConnection = Objects.requireNonNull(redisConnection, "redisConnection must not be null");
+            this.channel = Objects.requireNonNull(channel, "channel must not be null");
             this.onMessageRun = onMessageRun;
         }
 

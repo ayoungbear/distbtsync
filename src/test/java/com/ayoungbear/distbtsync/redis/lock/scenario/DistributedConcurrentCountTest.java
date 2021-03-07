@@ -35,7 +35,7 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
     /**
      * 分布式锁模式-公平/非公平
      */
-    private static boolean fair = false;
+    private static boolean fair = true;
 
     @Before
     public void setUp() throws Exception {
@@ -65,6 +65,15 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
     @Test
     public void testConcurrentCountUseRedisConnection() throws Exception {
         testConcurrentCount(() -> new RedisBasedLock(key, getRedisConnectionCommandsAdapter(), fair));
+    }
+
+    /**
+     * 使用 RedisTemplate 来测试分布式锁并发计数, 测试稳定性和并发处理场景
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentCountUseRedisTemplate() throws Exception {
+        testConcurrentCount(() -> new RedisBasedLock(key, getRedisTemplateCommandsAdapter(), fair));
     }
 
     /**
