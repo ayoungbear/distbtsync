@@ -35,8 +35,8 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
     public void subscribe() {
         RedisPubSubCommands<String, String> commands = getCommands();
         if (!isSubscribed()) {
-            isSubscribed = true;
             commands.subscribe(channel);
+            isSubscribed = true;
             // 异步订阅, 在此阻塞
             latch.acquireUninterruptibly();
         } else {
