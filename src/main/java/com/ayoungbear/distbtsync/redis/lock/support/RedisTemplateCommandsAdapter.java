@@ -3,6 +3,7 @@ package com.ayoungbear.distbtsync.redis.lock.support;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -43,8 +44,9 @@ public class RedisTemplateCommandsAdapter implements RedisLockCommands {
 
     @Override
     public RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun) {
-        RedisConnection redisConnection = redisTemplate.getRequiredConnectionFactory().getConnection();
-        return new RedisConnectionSubscription(redisConnection, channel, onMessageRun);
+        Supplier<RedisConnection> connectionSupplier = () -> redisTemplate.getRequiredConnectionFactory()
+                .getConnection();
+        return new RedisConnectionSubscription(connectionSupplier, channel, onMessageRun);
     }
 
 }

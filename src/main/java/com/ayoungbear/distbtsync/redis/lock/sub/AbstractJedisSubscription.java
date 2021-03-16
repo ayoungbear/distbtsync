@@ -12,14 +12,14 @@ import redis.clients.jedis.JedisPubSub;
  */
 public abstract class AbstractJedisSubscription extends JedisPubSub implements RedisSubscription {
 
+    private final String channel;
+
+    private Consumer<String> onMessageRun;
+
     protected AbstractJedisSubscription(String channel, Consumer<String> onMessageRun) {
         this.channel = Objects.requireNonNull(channel, "Channel must not be null");
         this.onMessageRun = onMessageRun;
     }
-
-    private final String channel;
-
-    private Consumer<String> onMessageRun;
 
     @Override
     public void unsubscribe() {

@@ -13,12 +13,12 @@ import redis.clients.jedis.JedisCluster;
  */
 public class JedisClusterSubscription extends AbstractJedisSubscription implements RedisSubscription {
 
+    private JedisCluster jedisCluster;
+
     public JedisClusterSubscription(JedisCluster jedisCluster, String channel, Consumer<String> onMessageRun) {
         super(channel, onMessageRun);
         this.jedisCluster = Objects.requireNonNull(jedisCluster, "JedisCluster must not be null");
     }
-
-    private final JedisCluster jedisCluster;
 
     @Override
     public void subscribe() {

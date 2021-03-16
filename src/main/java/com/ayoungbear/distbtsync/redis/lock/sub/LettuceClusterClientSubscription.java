@@ -14,7 +14,7 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
  */
 public class LettuceClusterClientSubscription extends AbstractLettuceClientSubscription implements RedisSubscription {
 
-    private final RedisClusterClient client;
+    private RedisClusterClient client;
 
     public LettuceClusterClientSubscription(RedisClusterClient client, String channel, Consumer<String> onMessageRun) {
         super(channel, onMessageRun);

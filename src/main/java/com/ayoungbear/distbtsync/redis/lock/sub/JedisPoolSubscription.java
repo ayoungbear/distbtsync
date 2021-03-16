@@ -14,12 +14,12 @@ import redis.clients.jedis.JedisPool;
  */
 public class JedisPoolSubscription extends AbstractJedisSubscription implements RedisSubscription {
 
+    private JedisPool jedisPool;
+
     public JedisPoolSubscription(JedisPool jedisPool, String channel, Consumer<String> onMessageRun) {
         super(channel, onMessageRun);
         this.jedisPool = Objects.requireNonNull(jedisPool, "JedisPool must not be null");
     }
-
-    private final JedisPool jedisPool;
 
     @Override
     public void subscribe() {

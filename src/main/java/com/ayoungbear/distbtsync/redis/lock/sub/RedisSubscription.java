@@ -29,4 +29,10 @@ public interface RedisSubscription {
      */
     String getChannel();
 
+    /**
+     * 如果有必要关闭资源则实现该方法
+     */
+    default void close() {
+    }
+
 }

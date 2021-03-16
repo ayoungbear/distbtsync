@@ -66,6 +66,15 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
     }
 
     @Override
+    public void close() {
+        if (pubSubConnection != null) {
+            StatefulRedisPubSubConnection<String, String> connection = this.pubSubConnection;
+            this.pubSubConnection = null;
+            connection.close();
+        }
+    }
+
+    @Override
     public void message(String channel, String message) {
         if (onMessageRun != null) {
             onMessageRun.accept(message);
@@ -89,15 +98,10 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
     protected abstract StatefulRedisPubSubConnection<String, String> providePubSubConnection();
 
     /**
-     * 去掉订阅后释放拦截器并关闭连接
+     * 取消订阅后释放拦截器
      */
     private void release() {
         latch.release();
-        if (pubSubConnection != null) {
-            StatefulRedisPubSubConnection<String, String> connection = this.pubSubConnection;
-            this.pubSubConnection = null;
-            connection.close();
-        }
     }
 
     private StatefulRedisPubSubConnection<String, String> getPubSubConnection() {

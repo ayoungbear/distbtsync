@@ -9,7 +9,6 @@ import org.springframework.data.redis.connection.ReturnType;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.util.Assert;
-import org.springframework.util.function.SingletonSupplier;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.sub.RedisConnectionSubscription;
@@ -29,7 +28,7 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
 
     public RedisConnectionCommandsAdapter(RedisConnection redisConnection) {
         Assert.notNull(redisConnection, () -> "RedisConnection must not be null");
-        this.connectionSupplier = SingletonSupplier.of(redisConnection);
+        this.connectionSupplier = () -> redisConnection;
     }
 
     public RedisConnectionCommandsAdapter(Supplier<RedisConnection> redisConnectionSupplier) {
@@ -51,8 +50,7 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
 
     @Override
     public RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun) {
-        RedisConnection redisConnection = connectionSupplier.get();
-        return new RedisConnectionSubscription(redisConnection, channel, onMessageRun);
+        return new RedisConnectionSubscription(connectionSupplier, channel, onMessageRun);
     }
 
     protected byte[] serialize(String script) {
