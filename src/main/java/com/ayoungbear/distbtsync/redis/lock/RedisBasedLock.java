@@ -585,12 +585,12 @@ public class RedisBasedLock extends AbstractRedisLock {
         /**
          * 订阅者
          */
-        private volatile RedisSubscription subscription;
+        private RedisSubscription subscription;
 
         /**
          * 终止后的回调
          */
-        private volatile Runnable callback;
+        private Runnable callback;
 
         private volatile boolean terminated = false;
 
