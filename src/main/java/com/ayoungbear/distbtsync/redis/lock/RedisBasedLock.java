@@ -585,12 +585,12 @@ public class RedisBasedLock extends AbstractRedisLock {
         /**
          * 订阅者
          */
-        private RedisSubscription subscription;
+        private volatile RedisSubscription subscription;
 
         /**
          * 终止后的回调
          */
-        private Runnable callback;
+        private volatile Runnable callback;
 
         private volatile boolean terminated = false;
 
@@ -654,9 +654,10 @@ public class RedisBasedLock extends AbstractRedisLock {
             terminated = true;
         }
 
-        private void close() {
+        private synchronized void close() {
             if (this.callback != null) {
                 this.callback.run();
+                this.callback = null;
             }
             if (subscription != null) {
                 subscription.close();
