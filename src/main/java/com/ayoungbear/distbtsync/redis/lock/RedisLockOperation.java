@@ -9,7 +9,7 @@ package com.ayoungbear.distbtsync.redis.lock;
 public interface RedisLockOperation {
 
     /**
-     * 使用给定的 {@link RedisLock} 加锁
+     * 使用给定的 {@link RedisLock} 加锁.
      * @param lock
      * @return
      */

@@ -23,9 +23,8 @@ public class RedisBasedLock extends AbstractRedisLock {
 
     /**
      * 是否公平锁模式.
-     * 这里的公平指的是相对公平, 只有使用相同阻塞队列的线程
-     * 之间会保持先来后到的加锁顺序, 使用不同队列或者处于不同服务节点上的锁对象之间是
-     * 处于竞争关系的.
+     * 这里的公平指的是相对公平, 只有使用相同阻塞队列的线程之间会保持先来后到的加锁顺序, 
+     * 使用不同队列或者处于不同服务节点上的锁对象之间是处于竞争关系的.
      */
     private final boolean fair;
 
@@ -64,7 +63,7 @@ public class RedisBasedLock extends AbstractRedisLock {
     }
 
     /**
-     * 获取已缓存的共享阻塞队列的长度
+     * 获取已缓存的共享阻塞队列的长度.
      * @return
      */
     public static int getSharedSyncCacheSize() {
@@ -189,7 +188,7 @@ public class RedisBasedLock extends AbstractRedisLock {
     }
 
     /**
-     * 获取当前对象中自旋竞争锁的线程数
+     * 获取当前对象中自旋竞争锁的线程数.
      * @return
      */
     public int getCompetitorCount(){
@@ -274,7 +273,8 @@ public class RedisBasedLock extends AbstractRedisLock {
     }
 
     /**
-     * 请求争用锁的互斥资源, 公平模式下只有一个线程能争用分布式锁
+     * 请求争用锁的互斥资源, 公平模式下只有一个线程能争用分布式锁,
+     * 获取到后才开始自旋争用分布式锁.
      * @param interruptible
      * @param timeoutNanos
      * @return
@@ -312,7 +312,7 @@ public class RedisBasedLock extends AbstractRedisLock {
     }
 
     /**
-     * 释放互斥资源, 让下个线程争用锁(如果有)
+     * 释放互斥资源, 让下个线程争用锁(如果有).
      */
     private final void releaseIfNecessary() {
         if (fair) {
@@ -358,7 +358,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 根据给定的 {@code key} 获取对应的共享阻塞队列 {@link Sync}, 队列是属于公平模式加锁类型的
+         * 根据给定的 {@code key} 获取对应的共享阻塞队列 {@link Sync}, 队列是属于公平模式加锁类型的.
          * @param key the name of {@link RedisBasedLock}
          * @return the shared blocking queue.
          */
@@ -405,7 +405,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 阻塞模式下获取争用锁的资格
+         * 阻塞模式下获取争用锁的资格.
          * @return
          */
         public boolean acquire() {
@@ -414,7 +414,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 可中断模式下获取争用锁的资格
+         * 可中断模式下获取争用锁的资格.
          * @return
          */
         public boolean acquireInterruptibly() {
@@ -428,7 +428,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 超时模式下获取争用锁的资格
+         * 超时模式下获取争用锁的资格.
          * @param timeoutNanos
          * @return
          */
@@ -442,7 +442,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 获取到分布式锁后释放争用锁资格, 让下一等待线程争用
+         * 获取到分布式锁后释放争用锁资格, 让下一等待线程争用.
          * @return
          */
         public boolean release() {
@@ -450,7 +450,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
         
         /**
-         * 等待解锁信息, 或者超时/被中断
+         * 等待解锁信息, 或者超时/被中断.
          * @param interruptible
          * @param timeoutNanos
          */
@@ -471,18 +471,35 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 唤醒线程争用锁
+         * 唤醒线程争用锁.
          */
         public void signal() {
-            semaphore.release(1);
+            signal(1);
         }
 
         /**
-         * 唤醒 {@code num} 个等待线程争用锁
+         * 如果有等待线程则唤醒线程争用锁.
+         */
+        public void signalIfNecessary() {
+            if (hasWaiterForRelease()) {
+                signal();
+            }
+        }
+
+        /**
+         * 唤醒 {@code num} 个等待线程争用锁.
          * @param num
          */
         public void signal(int num) {
             semaphore.release(num);
+        }
+
+        /**
+         * 是否有线程等待解锁消息.
+         * @return
+         */
+        public boolean hasWaiterForRelease() {
+            return semaphore.hasQueuedThreads();
         }
 
         @Override
@@ -510,7 +527,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 启动订阅者, 监听解锁信息
+         * 启动订阅者, 监听解锁信息.
          * @param commands
          * @param channel
          * @return 订阅者是否已正常开始订阅
@@ -520,7 +537,8 @@ public class RedisBasedLock extends AbstractRedisLock {
                 synchronized (this) {
                     if (!isSubWorkerAlive()) {
                         RedisSubscription subscription = commands.getSubscription(channel, this::onReleaseMessage);
-                        this.subWorker = SubWorker.createAndStart(subscription);
+                        this.subWorker = SubWorker.create(subscription).setCloseCallback(this::signalIfNecessary)
+                                .subscribe();
                     }
                 }
             }
@@ -528,7 +546,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 终止订阅工作
+         * 终止订阅工作.
          */
         public void terminateSubWorker() {
             if (subWorker != null) {
@@ -542,7 +560,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         /**
-         * 收到解锁消息后唤醒等待线程竞争锁
+         * 收到解锁消息后唤醒等待线程竞争锁.
          * @param message
          */
         private void onReleaseMessage(String message) {
@@ -558,7 +576,7 @@ public class RedisBasedLock extends AbstractRedisLock {
     }
 
     /**
-     * 订阅解锁信息工作线程
+     * 订阅解锁信息工作线程.
      * 
      * @author yangzexiong
      */
@@ -569,6 +587,11 @@ public class RedisBasedLock extends AbstractRedisLock {
          */
         private RedisSubscription subscription;
 
+        /**
+         * 终止后的回调
+         */
+        private Runnable callback;
+
         private volatile boolean terminated = false;
 
         public SubWorker(RedisSubscription subscription) {
@@ -577,8 +600,8 @@ public class RedisBasedLock extends AbstractRedisLock {
             this.subscription = subscription;
         }
 
-        public static SubWorker createAndStart(RedisSubscription subscription) {
-            return new SubWorker(subscription).subscribe();
+        public static SubWorker create(RedisSubscription subscription) {
+            return new SubWorker(subscription);
         }
 
         @Override
@@ -593,7 +616,7 @@ public class RedisBasedLock extends AbstractRedisLock {
             } catch (Exception e) {
                 throw e;
             } finally {
-                terminate();
+                close();
             }
         }
 
@@ -608,6 +631,8 @@ public class RedisBasedLock extends AbstractRedisLock {
                 subscription.unsubscribe();
             } catch (Exception e) {
                 throw new IllegalStateException(e);
+            } finally {
+                close();
             }
             return this;
         }
@@ -620,8 +645,23 @@ public class RedisBasedLock extends AbstractRedisLock {
             return subscription.isSubscribed();
         }
 
+        public SubWorker setCloseCallback(Runnable callback) {
+            this.callback = callback;
+            return this;
+        }
+
         private void terminate() {
             terminated = true;
+        }
+
+        private void close() {
+            if (this.callback != null) {
+                this.callback.run();
+            }
+            if (subscription != null) {
+                subscription.close();
+                subscription = null;
+            }
         }
 
     }

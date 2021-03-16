@@ -103,7 +103,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 获取锁失效时间缓存(ms), 在 尝试加锁 后才会更新远程锁的失效时间
+     * 获取锁失效时间缓存(ms), 在 尝试加锁 后才会更新远程锁的失效时间.
      * @return the ttl
      */
     protected long getTtl() {
@@ -111,7 +111,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 使用给定的标识尝试加锁, 同时会缓存锁的失效时间ttl
+     * 使用给定的标识尝试加锁, 同时会缓存锁的失效时间ttl.
      * @param identifier 锁标识
      * @param leaseTimeMillis 过期时间(ms)
      * @return {@code true} 加锁成功
@@ -129,7 +129,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 使用给定的标识尝试解锁, 只有锁的持有者才能解锁成功
+     * 使用给定的标识尝试解锁, 只有锁的持有者才能解锁成功.
      * @param identifier 锁标识
      * @return 返回剩余的加锁次数(可重入)
      */
@@ -139,7 +139,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 删除锁对应的key
+     * 删除锁对应的key.
      * @return
      */
     protected boolean doDelete() {
@@ -147,8 +147,8 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 判断锁是否被指定锁标识的持有者持有
-     * 通过校验锁对应key和相应标识符是否匹配
+     * 判断锁是否被指定锁标识的持有者持有,
+     * 通过校验锁对应key和相应标识符是否匹配.
      * @param identifier
      * @return
      */
@@ -157,7 +157,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 判断锁对应的key是否已存在
+     * 判断锁对应的key是否已存在.
      * @return
      */
     protected boolean doExists() {
@@ -165,7 +165,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 判断当前线程持有可重入锁的次数
+     * 判断当前线程持有可重入锁的次数.
      * @param identifier
      * @return
      */
@@ -175,7 +175,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 使用给定的锁标识延长锁的过期时间, 只有锁的持有者可以延长
+     * 使用给定的锁标识延长锁的过期时间, 只有锁的持有者可以延长.
      * @param identifier
      * @param leaseTimeMillis
      * @return
@@ -185,7 +185,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 获取加锁标识, 如果没有则新生成
+     * 获取加锁标识, 如果没有则新生成.
      * @return
      */
     protected String getIdentifier() {
@@ -197,7 +197,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 获取源加锁标识
+     * 获取源加锁标识.
      * @return
      */
     protected String getSourceIdentifier() {
@@ -210,7 +210,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 记录锁标识
+     * 记录锁标识.
      * @param identifier
      */
     protected void setSourceIdentifier(String identifier) {
@@ -218,14 +218,14 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 清除锁标识
+     * 清除锁标识.
      */
     protected void removeIdentifier() {
         RedisLockIdentifierManager.removeIdentifier(key);
     }
     
     /**
-     * 执行加锁操作脚本命令
+     * 执行加锁操作脚本命令.
      * @param script
      * @param key
      * @param args
@@ -237,7 +237,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 校验锁过期时间是否合法
+     * 校验锁过期时间是否合法.
      * @param leaseTime
      */
     protected void validateLeaseTime(long leaseTime) {
@@ -247,7 +247,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 判断是否曾经加锁成功(有持有相应的锁标识)
+     * 判断是否曾经加锁成功(有持有相应的锁标识).
      * @return
      */
     protected boolean onceLocked() {
@@ -255,7 +255,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     }
 
     /**
-     * 用于管理各线程持有 redis 锁标识的类, 锁标识用于判断是否持有该锁
+     * 用于管理各线程持有 redis 锁标识的类, 锁标识用于判断是否持有该锁.
      * 
      * @author yangzexiong
      */
@@ -267,7 +267,7 @@ public abstract class AbstractRedisLock implements RedisLock {
         private static final ThreadLocal<Map<String, String>> lockIdentifierManager = new ThreadLocal<>();
 
         /**
-         * 获取锁对应的标识符
+         * 获取锁对应的标识符.
          * @param key
          * @return
          */
@@ -276,7 +276,7 @@ public abstract class AbstractRedisLock implements RedisLock {
         }
 
         /**
-         * 记录锁对应的标识符
+         * 记录锁对应的标识符.
          * @param key
          * @param identifier
          * @return 旧的锁标识符(如果有)
@@ -286,7 +286,7 @@ public abstract class AbstractRedisLock implements RedisLock {
         }
 
         /**
-         * 清除锁对应的标识符
+         * 清除锁对应的标识符.
          * @param key
          * @return
          */

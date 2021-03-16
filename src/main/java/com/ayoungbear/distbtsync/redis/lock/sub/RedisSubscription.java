@@ -8,29 +8,29 @@ package com.ayoungbear.distbtsync.redis.lock.sub;
 public interface RedisSubscription {
 
     /**
-     * 订阅指定的频道并阻塞线程
+     * 订阅指定的频道并阻塞线程.
      */
     void subscribe();
 
     /**
-     * 取消订阅
+     * 取消订阅.
      */
     void unsubscribe();
 
     /**
-     * 是否处于订阅中
+     * 是否处于订阅中.
      * @return
      */
     boolean isSubscribed();
 
     /**
-     * 获取订阅的频道
+     * 获取订阅的频道.
      * @return
      */
     String getChannel();
 
     /**
-     * 如果有必要关闭资源则实现该方法
+     * 如果有必要关闭资源则实现该方法.
      */
     default void close() {
     }

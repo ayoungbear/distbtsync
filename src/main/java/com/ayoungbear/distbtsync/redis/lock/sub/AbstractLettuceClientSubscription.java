@@ -92,7 +92,7 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
     }
 
     /**
-     * 提供 {@link io.lettuce.core.pubsub.StatefulRedisPubSubConnection} 连接
+     * 提供 {@link io.lettuce.core.pubsub.StatefulRedisPubSubConnection} 连接.
      * @return
      */
     protected abstract StatefulRedisPubSubConnection<String, String> providePubSubConnection();
