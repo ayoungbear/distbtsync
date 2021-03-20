@@ -22,8 +22,7 @@ import com.ayoungbear.distbtsync.spring.SyncMethodInvocationHandler;
 import com.ayoungbear.distbtsync.spring.Synchronizer;
 
 /**
- * {@link SyncMethodInvocationHandler} 懒加载型包装类, 
- * Spring 高版本可考虑替换成 {@link org.springframework.util.function.SingletonSupplier}.
+ * 懒加载型 {@link SyncMethodInvocationHandler} 的实现类.
  * 
  * @author yangzexiong
  */
@@ -47,7 +46,6 @@ public class LazySyncMethodInvocationHandler implements SyncMethodInvocationHand
     }
 
     public SyncMethodInvocationHandler getHandler() {
-
         if (handler == null) {
             synchronized (this) {
                 if (handler == null) {

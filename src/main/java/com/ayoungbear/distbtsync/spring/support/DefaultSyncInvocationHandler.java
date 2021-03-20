@@ -28,7 +28,6 @@ import com.ayoungbear.distbtsync.spring.Synchronizer;
  * 
  * @author yangzexiong
  */
-@SuppressWarnings("rawtypes")
 public class DefaultSyncInvocationHandler implements SyncMethodInvocationHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultSyncInvocationHandler.class);
