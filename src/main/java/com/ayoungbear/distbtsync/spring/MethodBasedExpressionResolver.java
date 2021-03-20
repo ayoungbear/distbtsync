@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ayoungbear.distbtsync.spring.support;
+package com.ayoungbear.distbtsync.spring;
 
 import java.lang.reflect.Method;
 

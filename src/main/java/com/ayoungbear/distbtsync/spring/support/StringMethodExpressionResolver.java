@@ -28,6 +28,8 @@ import org.springframework.expression.common.LiteralExpression;
 import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
+import com.ayoungbear.distbtsync.spring.MethodBasedExpressionResolver;
+
 /**
  * 基于特定方法的 SpEl 表达式解析器, 将表达式根据方法上下文解析成字符串并返回.
  * 
