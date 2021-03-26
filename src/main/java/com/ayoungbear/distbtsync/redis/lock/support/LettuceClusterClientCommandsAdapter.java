@@ -18,10 +18,10 @@ package com.ayoungbear.distbtsync.redis.lock.support;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.sub.LettuceClusterClientSubscription;
+import com.ayoungbear.distbtsync.redis.lock.sub.MessageConsumer;
 import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
 
 import io.lettuce.core.ScriptOutputType;
@@ -54,8 +54,8 @@ public class LettuceClusterClientCommandsAdapter implements RedisLockCommands, C
     }
 
     @Override
-    public RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun) {
-        return new LettuceClusterClientSubscription(client, channel, onMessageRun);
+    public RedisSubscription getSubscription(String channel, MessageConsumer<String> messageConsumer) {
+        return new LettuceClusterClientSubscription(client, channel, messageConsumer);
     }
 
     @Override

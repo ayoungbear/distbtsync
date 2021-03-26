@@ -16,7 +16,6 @@
 package com.ayoungbear.distbtsync.redis.lock.sub;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
@@ -31,8 +30,9 @@ public class LettuceClusterClientSubscription extends AbstractLettuceClientSubsc
 
     private RedisClusterClient client;
 
-    public LettuceClusterClientSubscription(RedisClusterClient client, String channel, Consumer<String> onMessageRun) {
-        super(channel, onMessageRun);
+    public LettuceClusterClientSubscription(RedisClusterClient client, String channel,
+            MessageConsumer<String> messageConsumer) {
+        super(channel, messageConsumer);
         this.client = Objects.requireNonNull(client, "RedisClusterClient must not be null");
     }
 

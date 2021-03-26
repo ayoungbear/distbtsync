@@ -16,7 +16,6 @@
 package com.ayoungbear.distbtsync.redis.lock.sub;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -31,8 +30,8 @@ public class JedisPoolSubscription extends AbstractJedisSubscription implements 
 
     private JedisPool jedisPool;
 
-    public JedisPoolSubscription(JedisPool jedisPool, String channel, Consumer<String> onMessageRun) {
-        super(channel, onMessageRun);
+    public JedisPoolSubscription(JedisPool jedisPool, String channel, MessageConsumer<String> messageConsumer) {
+        super(channel, messageConsumer);
         this.jedisPool = Objects.requireNonNull(jedisPool, "JedisPool must not be null");
     }
 

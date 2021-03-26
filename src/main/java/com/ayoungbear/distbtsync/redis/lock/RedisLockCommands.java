@@ -15,8 +15,7 @@
  */
 package com.ayoungbear.distbtsync.redis.lock;
 
-import java.util.function.Consumer;
-
+import com.ayoungbear.distbtsync.redis.lock.sub.MessageConsumer;
 import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
 
 /**
@@ -38,9 +37,9 @@ public interface RedisLockCommands {
     /**
      * 根据给定的频道和消息消费操作, 返回相应 redis 订阅者的实现类.
      * @param channel
-     * @param onMessageRun
+     * @param messageConsumer
      * @return
      */
-    RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun);
+    RedisSubscription getSubscription(String channel, MessageConsumer<String> messageConsumer);
 
 }

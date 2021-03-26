@@ -16,7 +16,6 @@
 package com.ayoungbear.distbtsync.redis.lock.sub;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import redis.clients.jedis.JedisCluster;
 
@@ -30,8 +29,9 @@ public class JedisClusterSubscription extends AbstractJedisSubscription implemen
 
     private JedisCluster jedisCluster;
 
-    public JedisClusterSubscription(JedisCluster jedisCluster, String channel, Consumer<String> onMessageRun) {
-        super(channel, onMessageRun);
+    public JedisClusterSubscription(JedisCluster jedisCluster, String channel,
+            MessageConsumer<String> messageConsumer) {
+        super(channel, messageConsumer);
         this.jedisCluster = Objects.requireNonNull(jedisCluster, "JedisCluster must not be null");
     }
 

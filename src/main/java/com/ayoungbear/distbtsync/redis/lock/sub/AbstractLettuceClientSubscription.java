@@ -17,7 +17,6 @@ package com.ayoungbear.distbtsync.redis.lock.sub;
 
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
 
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
@@ -33,7 +32,7 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
 
     private final String channel;
 
-    private Consumer<String> onMessageRun;
+    private MessageConsumer<String> messageConsumer;
 
     private StatefulRedisPubSubConnection<String, String> pubSubConnection;
 
@@ -41,9 +40,9 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
 
     private volatile boolean isSubscribed = false;
 
-    protected AbstractLettuceClientSubscription(String channel, Consumer<String> onMessageRun) {
+    protected AbstractLettuceClientSubscription(String channel, MessageConsumer<String> messageConsumer) {
         this.channel = Objects.requireNonNull(channel, "Channel must not be null");
-        this.onMessageRun = onMessageRun;
+        this.messageConsumer = messageConsumer;
     }
 
     @Override
@@ -91,13 +90,13 @@ public abstract class AbstractLettuceClientSubscription extends RedisPubSubAdapt
 
     @Override
     public void message(String channel, String message) {
-        if (onMessageRun != null) {
-            onMessageRun.accept(message);
+        if (messageConsumer != null) {
+            messageConsumer.consume(message);
         }
     }
 
-    public void setOnMessageRun(Consumer<String> onMessageRun) {
-        this.onMessageRun = onMessageRun;
+    public void setMessageConsumer(MessageConsumer<String> messageConsumer) {
+        this.messageConsumer = messageConsumer;
     }
 
     protected RedisPubSubCommands<String, String> getCommands() {

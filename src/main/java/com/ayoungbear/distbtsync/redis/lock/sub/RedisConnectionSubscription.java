@@ -17,7 +17,6 @@ package com.ayoungbear.distbtsync.redis.lock.sub;
 
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.springframework.data.redis.connection.Message;
@@ -40,18 +39,18 @@ public class RedisConnectionSubscription implements RedisSubscription, MessageLi
 
     private RedisConnection subRedisConnection;
 
-    private Consumer<String> onMessageRun;
+    private MessageConsumer<String> messageConsumer;
 
     private Semaphore latch = new Semaphore(0);
 
     private StringRedisSerializer serializer = new StringRedisSerializer();
 
     public RedisConnectionSubscription(Supplier<RedisConnection> redisConnectionSupplier, String channel,
-            Consumer<String> onMessageRun) {
+            MessageConsumer<String> messageConsumer) {
         this.redisConnectionSupplier = Objects.requireNonNull(redisConnectionSupplier,
                 "RedisConnectionSupplier must not be null");
         this.channel = Objects.requireNonNull(channel, "Channel must not be null");
-        this.onMessageRun = onMessageRun;
+        this.messageConsumer = messageConsumer;
     }
 
     @Override
@@ -82,9 +81,9 @@ public class RedisConnectionSubscription implements RedisSubscription, MessageLi
 
     @Override
     public void onMessage(Message message, byte[] pattern) {
-        if (onMessageRun != null) {
+        if (messageConsumer != null) {
             String messageStr = serializer.deserialize(message.getBody());
-            onMessageRun.accept(messageStr);
+            messageConsumer.consume(messageStr);
         }
     }
 
@@ -107,8 +106,8 @@ public class RedisConnectionSubscription implements RedisSubscription, MessageLi
         }
     }
 
-    public void setOnMessageRun(Consumer<String> onMessageRun) {
-        this.onMessageRun = onMessageRun;
+    public void setMessageConsumer(MessageConsumer<String> messageConsumer) {
+        this.messageConsumer = messageConsumer;
     }
 
     private RedisConnection getRedisConnection() {

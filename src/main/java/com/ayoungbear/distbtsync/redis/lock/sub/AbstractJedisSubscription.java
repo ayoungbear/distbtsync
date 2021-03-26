@@ -16,7 +16,6 @@
 package com.ayoungbear.distbtsync.redis.lock.sub;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import redis.clients.jedis.JedisPubSub;
 
@@ -29,11 +28,11 @@ public abstract class AbstractJedisSubscription extends JedisPubSub implements R
 
     private final String channel;
 
-    private Consumer<String> onMessageRun;
+    private MessageConsumer<String> messageConsumer;
 
-    protected AbstractJedisSubscription(String channel, Consumer<String> onMessageRun) {
+    protected AbstractJedisSubscription(String channel, MessageConsumer<String> messageConsumer) {
         this.channel = Objects.requireNonNull(channel, "Channel must not be null");
-        this.onMessageRun = onMessageRun;
+        this.messageConsumer = messageConsumer;
     }
 
     @Override
@@ -55,13 +54,13 @@ public abstract class AbstractJedisSubscription extends JedisPubSub implements R
 
     @Override
     public void onMessage(String channel, String message) {
-        if (onMessageRun != null) {
-            onMessageRun.accept(message);
+        if (messageConsumer != null) {
+            messageConsumer.consume(message);
         }
     }
 
-    public void setOnMessageRun(Consumer<String> onMessageRun) {
-        this.onMessageRun = onMessageRun;
+    public void setMessageConsumer(MessageConsumer<String> messageConsumer) {
+        this.messageConsumer = messageConsumer;
     }
 
 }

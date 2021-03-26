@@ -16,10 +16,10 @@
 package com.ayoungbear.distbtsync.redis.lock.support;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.sub.JedisPoolSubscription;
+import com.ayoungbear.distbtsync.redis.lock.sub.MessageConsumer;
 import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
 
 import redis.clients.jedis.Jedis;
@@ -50,8 +50,8 @@ public class JedisPoolCommandsAdapter implements RedisLockCommands {
     }
 
     @Override
-    public RedisSubscription getSubscription(String channel, Consumer<String> onMessageRun) {
-        return new JedisPoolSubscription(jedisPool, channel, onMessageRun);
+    public RedisSubscription getSubscription(String channel, MessageConsumer<String> messageConsumer) {
+        return new JedisPoolSubscription(jedisPool, channel, messageConsumer);
     }
 
     protected String[] mergeParams(String key, String... args) {
