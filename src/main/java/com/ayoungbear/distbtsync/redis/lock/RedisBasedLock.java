@@ -210,6 +210,11 @@ public class RedisBasedLock extends AbstractRedisLock {
         return competitor.get();
     }
 
+    @Override
+    public String toString() {
+        return this.key + "@" + this.commands.getClass().getSimpleName() + "@" + super.toString();
+    }
+
     /**
      * 自旋争用分布式锁, 是所有阻塞或者超时性质加锁方法的基础方法.
      * 如果是公平模式那么所有线程会先获取争用锁的资格, 只有一个线程能获取成功,
@@ -230,6 +235,11 @@ public class RedisBasedLock extends AbstractRedisLock {
         final long deadline = System.nanoTime() + timeoutNanos;
         // 是否超时可中断模式
         boolean timeoutMode = timeoutNanos > 0;
+
+        // 如果已持有锁则尝试重新加锁, 可重入
+        if (onceLocked() && operation.doLock(this)) {
+            return true;
+        }
 
         // 获取加锁资格, 公平模式下只有一个能获取成功并执行加锁(或者是锁持有者可重入), 非公平模式下则无需获取直接竞争锁
         boolean canSpinLock = acquire(interruptible, timeoutNanos);
@@ -298,27 +308,20 @@ public class RedisBasedLock extends AbstractRedisLock {
     private final boolean acquire(boolean interruptible, long timeoutNanos) throws InterruptedException {
         boolean result = false;
         if (fair) {
-            if (isHeldLock()) {
-                // 如果当前线程已持有锁, 则直接允许继续加锁, 可重入
-                return true;
-
-            } else {
-                if (interruptible) {
-                    if (timeoutNanos > 0) {
-                        // 超时模式
-                        result = sync.acquire(timeoutNanos);
-                    } else {
-                        // 可中断阻塞模式
-                        result = sync.acquireInterruptibly();
-                    }
-                    if (!result && Thread.interrupted()) {
-                        throw new InterruptedException();
-                    }
-
+            if (interruptible) {
+                if (timeoutNanos > 0) {
+                    // 超时模式
+                    result = sync.acquire(timeoutNanos);
                 } else {
-                    // 阻塞模式
-                    result = sync.acquire();
+                    // 可中断阻塞模式
+                    result = sync.acquireInterruptibly();
                 }
+                if (!result && Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+            } else {
+                // 阻塞模式
+                result = sync.acquire();
             }
         } else {
             result = true;
