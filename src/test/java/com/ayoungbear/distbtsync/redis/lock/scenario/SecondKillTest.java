@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
@@ -152,13 +151,14 @@ public class SecondKillTest extends BaseSpringRedisTest {
      * @throws Exception
      */
     protected void testSecKill(Supplier<Lock> lockSupplier) throws Exception {
+        logger.info("SecKill test begin use lock={}", lockSupplier.get());
         // 成功率
         BigDecimal rate = BigDecimal.valueOf(goodsNum).multiply(new BigDecimal("100.00")).divide(
                 BigDecimal.valueOf(nodeNum).multiply(BigDecimal.valueOf(requestNum)), 2, BigDecimal.ROUND_HALF_UP);
 
         // 秒杀开始时间, x秒后开始
         long xs = 5L;
-        long beginTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(xs);
+        long beginTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(xs);
 
         CountDownLatch goodsCountDownLatch = new CountDownLatch(goodsNum);
         CountDownLatch countDownLatch = new CountDownLatch(nodeNum);
@@ -174,22 +174,24 @@ public class SecondKillTest extends BaseSpringRedisTest {
             }, "node-" + n);
         }
 
-        goodsCountDownLatch.await();
+        while (goods > 0) {
+            goodsCountDownLatch.await();
+        }
         // 秒杀抢购结束, 商品已被秒完
-        long secKillTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+        long secKillTime = System.currentTimeMillis() - beginTime;
         logger.info("Goods has been secKill! The success rate={}% cost {}ms.", rate, secKillTime);
         logger.info("Wait for processing the rest of requests...");
 
         // 等待堆积的请求处理完毕
         countDownLatch.await();
-        long costTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+        long costTime = System.currentTimeMillis() - beginTime;
         logger.info("SecKill test end success rate={}% cost {}ms total request num={}.", rate, costTime,
                 nodeNum * requestNum);
 
         // 总共抢到的商品数
         int actGoodsNum = luckyDogs.values().stream().mapToInt((num) -> num.intValue()).sum();
         logger.info("SecKill end use lock={} the actual goods num={} and congratulations the lucky dogs! {}",
-                lockSupplier.get().getClass().getSimpleName(), actGoodsNum, getLukyNames());
+                lockSupplier.get(), actGoodsNum, getLukyNames());
 
         // 断言
         Assert.assertEquals(goodsNum, actGoodsNum);
@@ -216,7 +218,7 @@ public class SecondKillTest extends BaseSpringRedisTest {
             run(() -> {
                 try {
                     // 等待秒杀活动开始
-                    LockSupport.parkNanos(beginTime - System.nanoTime());
+                    sleep(beginTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
 
                     // 不停尝试秒杀商品直到商品被秒完为止
                     while (hasGoods) {
@@ -255,7 +257,7 @@ public class SecondKillTest extends BaseSpringRedisTest {
 
         // 秒杀请求线程准备完毕
         logger.info("SecKill {} ready!", Thread.currentThread().getName());
-        LockSupport.parkNanos(beginTime - System.nanoTime());
+        sleep(beginTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         // 秒杀开始
         logger.info("SecKill begin!");
         countDownLatch.await();
