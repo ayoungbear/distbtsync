@@ -42,17 +42,17 @@ public class RedisConnectionCommandsAdapter implements RedisLockCommands {
     private StringRedisSerializer serializer = new StringRedisSerializer();
 
     public RedisConnectionCommandsAdapter(RedisConnection redisConnection) {
-        Assert.notNull(redisConnection, () -> "RedisConnection must not be null");
+        Assert.notNull(redisConnection, "RedisConnection must not be null");
         this.connectionSupplier = () -> redisConnection;
     }
 
     public RedisConnectionCommandsAdapter(Supplier<RedisConnection> redisConnectionSupplier) {
-        Assert.notNull(redisConnectionSupplier, () -> "RedisConnection supplier must not be null");
+        Assert.notNull(redisConnectionSupplier, "RedisConnection supplier must not be null");
         this.connectionSupplier = redisConnectionSupplier;
     }
 
     public RedisConnectionCommandsAdapter(RedisConnectionFactory redisConnectionFactory) {
-        Assert.notNull(redisConnectionFactory, () -> "RedisConnectionFactory must not be null");
+        Assert.notNull(redisConnectionFactory, "RedisConnectionFactory must not be null");
         this.connectionSupplier = () -> redisConnectionFactory.getConnection();
     }
 

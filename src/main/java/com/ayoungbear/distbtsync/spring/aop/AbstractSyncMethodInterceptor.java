@@ -22,13 +22,12 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
-import org.springframework.util.Assert;
+import org.springframework.util.function.SingletonSupplier;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
 import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
 import com.ayoungbear.distbtsync.spring.Synchronizer;
 import com.ayoungbear.distbtsync.spring.support.DefaultSyncFailureHandler;
-import com.ayoungbear.distbtsync.spring.support.LazySyncMethodFailureHandler;
 
 /**
  * 方法同步调用拦截器基础类. 通过 {@linkplain Synchronizer acquire} 在方法调用前同步获取资源, 
@@ -43,20 +42,20 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private Supplier<SyncMethodFailureHandler> defaultHandlerSupplier;
+    private SingletonSupplier<SyncMethodFailureHandler> defaultHandlerSupplier;
 
     protected AbstractSyncMethodInterceptor() {
-        this.defaultHandlerSupplier = DefaultSyncFailureHandler::new;
+        this.defaultHandlerSupplier = SingletonSupplier.of(DefaultSyncFailureHandler::new);
     }
 
     protected AbstractSyncMethodInterceptor(SyncMethodFailureHandler defaultHandler) {
-        Assert.notNull(defaultHandler, () -> "DefaultHandler must be provided");
-        this.defaultHandlerSupplier = () -> defaultHandler;
+        this.defaultHandlerSupplier = new SingletonSupplier<SyncMethodFailureHandler>(defaultHandler,
+                DefaultSyncFailureHandler::new);
     }
 
     protected AbstractSyncMethodInterceptor(Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
-        Assert.notNull(defaultHandlerSupplier, () -> "DefaultHandlerSupplier must be provided");
-        this.defaultHandlerSupplier = defaultHandlerSupplier;
+        this.defaultHandlerSupplier = new SingletonSupplier<SyncMethodFailureHandler>(defaultHandlerSupplier,
+                DefaultSyncFailureHandler::new);
     }
 
     @Override
@@ -78,12 +77,13 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
             throw new IllegalStateException("Synchronizer must be specified");
         }
 
-        SyncMethodFailureHandler handler = new LazySyncMethodFailureHandler(() -> getSyncFailureHandler(methodInvoker));
+        SingletonSupplier<SyncMethodFailureHandler> handlerSupplier = SingletonSupplier
+                .of(() -> getSyncFailureHandler(methodInvoker));
 
         // 方法调用前执行同步
         if (!acquire(sync)) {
             // 同步执行失败后续处理
-            handler.handleAcquireFailure(sync, methodInvoker);
+            handlerSupplier.obtain().handleAcquireFailure(sync, methodInvoker);
         }
 
         try {
@@ -94,7 +94,7 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
             if (sync.isHeld()) {
                 // 方法调用后执行释放操作
                 if (!release(sync)) {
-                    handler.handleReleaseFailure(sync, methodInvoker);
+                    handlerSupplier.obtain().handleReleaseFailure(sync, methodInvoker);
                 }
             }
         }
@@ -122,7 +122,7 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
     protected final SyncMethodFailureHandler getSyncFailureHandler(MethodInvoker methodInvoker) {
         SyncMethodFailureHandler handler = determineSyncFailureHandler(methodInvoker);
         if (handler == null) {
-            handler = defaultHandlerSupplier.get();
+            handler = defaultHandlerSupplier.obtain();
         }
         return handler;
     }

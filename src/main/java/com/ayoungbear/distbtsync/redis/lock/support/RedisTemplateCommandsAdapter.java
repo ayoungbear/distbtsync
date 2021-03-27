@@ -17,14 +17,12 @@ package com.ayoungbear.distbtsync.redis.lock.support;
 
 import java.util.Collections;
 import java.util.Objects;
-import java.util.function.Supplier;
 
-import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.util.Assert;
 
 import com.ayoungbear.distbtsync.redis.lock.RedisLockCommands;
 import com.ayoungbear.distbtsync.redis.lock.sub.MessageConsumer;
@@ -41,11 +39,14 @@ public class RedisTemplateCommandsAdapter implements RedisLockCommands {
 
     private RedisTemplate<String, String> redisTemplate;
 
+    private RedisConnectionFactory connectionFactory;
+
     private StringRedisSerializer serializer = new StringRedisSerializer();
 
     public RedisTemplateCommandsAdapter(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "RedisTemplate must not be null");
-        Assert.state(redisTemplate.getConnectionFactory() != null, "RedisConnectionFactory is required");
+        this.connectionFactory = Objects.requireNonNull(redisTemplate.getConnectionFactory(),
+                "RedisConnectionFactory is required");
     }
 
     @Override
@@ -59,9 +60,7 @@ public class RedisTemplateCommandsAdapter implements RedisLockCommands {
 
     @Override
     public RedisSubscription getSubscription(String channel, MessageConsumer<String> messageConsumer) {
-        Supplier<RedisConnection> connectionSupplier = () -> redisTemplate.getRequiredConnectionFactory()
-                .getConnection();
-        return new RedisConnectionSubscription(connectionSupplier, channel, messageConsumer);
+        return new RedisConnectionSubscription(() -> connectionFactory.getConnection(), channel, messageConsumer);
     }
 
 }

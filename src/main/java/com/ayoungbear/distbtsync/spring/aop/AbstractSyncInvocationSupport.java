@@ -18,6 +18,7 @@ package com.ayoungbear.distbtsync.spring.aop;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -40,6 +41,14 @@ public abstract class AbstractSyncInvocationSupport extends AbstractSyncMethodIn
     private BeanFactory beanFactory;
 
     private Map<Method, SyncMethodFailureHandler> handlerCache = new ConcurrentHashMap<>(256);
+
+    protected AbstractSyncInvocationSupport(SyncMethodFailureHandler defaultHandler) {
+        super(defaultHandler);
+    }
+
+    protected AbstractSyncInvocationSupport(Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
+        super(defaultHandlerSupplier);
+    }
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) {
