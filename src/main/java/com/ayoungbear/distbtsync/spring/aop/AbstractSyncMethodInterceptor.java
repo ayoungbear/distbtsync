@@ -25,36 +25,36 @@ import org.springframework.core.Ordered;
 import org.springframework.util.Assert;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
-import com.ayoungbear.distbtsync.spring.SyncMethodInvocationHandler;
+import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
 import com.ayoungbear.distbtsync.spring.Synchronizer;
-import com.ayoungbear.distbtsync.spring.support.DefaultSyncInvocationHandler;
-import com.ayoungbear.distbtsync.spring.support.LazySyncMethodInvocationHandler;
+import com.ayoungbear.distbtsync.spring.support.DefaultSyncFailureHandler;
+import com.ayoungbear.distbtsync.spring.support.LazySyncMethodFailureHandler;
 
 /**
  * 方法同步调用拦截器基础类. 通过 {@linkplain Synchronizer acquire} 在方法调用前同步获取资源, 
  * 获取成功后才会调用方法, 并在方法调用结束后 通过 {@linkplain Synchronizer release} 释放资源.
- * 如果同步操作执行失败, 会通过 {@link SyncMethodInvocationHandler} 来进行相应处理.
+ * 如果同步操作执行失败, 会通过 {@link SyncMethodFailureHandler} 来进行相应处理.
  * 
  * @author yangzexiong
  * @see CachedMethodInvoker
- * @see DefaultSyncInvocationHandler
+ * @see DefaultSyncFailureHandler
  */
 public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor, Ordered {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private Supplier<SyncMethodInvocationHandler> defaultHandlerSupplier;
+    private Supplier<SyncMethodFailureHandler> defaultHandlerSupplier;
 
     protected AbstractSyncMethodInterceptor() {
-        this.defaultHandlerSupplier = DefaultSyncInvocationHandler::new;
+        this.defaultHandlerSupplier = DefaultSyncFailureHandler::new;
     }
 
-    protected AbstractSyncMethodInterceptor(SyncMethodInvocationHandler defaultHandler) {
+    protected AbstractSyncMethodInterceptor(SyncMethodFailureHandler defaultHandler) {
         Assert.notNull(defaultHandler, () -> "DefaultHandler must be provided");
         this.defaultHandlerSupplier = () -> defaultHandler;
     }
 
-    protected AbstractSyncMethodInterceptor(Supplier<SyncMethodInvocationHandler> defaultHandlerSupplier) {
+    protected AbstractSyncMethodInterceptor(Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
         Assert.notNull(defaultHandlerSupplier, () -> "DefaultHandlerSupplier must be provided");
         this.defaultHandlerSupplier = defaultHandlerSupplier;
     }
@@ -67,7 +67,7 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
 
     /**
      * 同步方法调用, 在调用前根据指定的 {@link Synchronizer} 同步器进行同步操作,
-     * 如果同步失败则由指定的  {@link SyncMethodInvocationHandler} 处理器进行相应处理.
+     * 如果同步失败则由指定的  {@link SyncMethodFailureHandler} 处理器进行相应处理.
      * @param methodInvoker
      * @return
      * @throws Throwable
@@ -78,8 +78,7 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
             throw new IllegalStateException("Synchronizer must be specified");
         }
 
-        SyncMethodInvocationHandler handler = new LazySyncMethodInvocationHandler(
-                () -> getSyncInvocationHandler(methodInvoker));
+        SyncMethodFailureHandler handler = new LazySyncMethodFailureHandler(() -> getSyncFailureHandler(methodInvoker));
 
         // 方法调用前执行同步
         if (!acquire(sync)) {
@@ -116,12 +115,12 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
     }
 
     /**
-     * 根据方法调用的相关信息获取特定的同步方法调用处理器, 如果没有则使用默认的处理器.
+     * 根据方法调用的相关信息获取特定的同步方法调用异常处理器, 如果没有则使用默认的处理器.
      * @param methodInvoker
      * @return
      */
-    protected final SyncMethodInvocationHandler getSyncInvocationHandler(MethodInvoker methodInvoker) {
-        SyncMethodInvocationHandler handler = determineSyncInvocationHandler(methodInvoker);
+    protected final SyncMethodFailureHandler getSyncFailureHandler(MethodInvoker methodInvoker) {
+        SyncMethodFailureHandler handler = determineSyncFailureHandler(methodInvoker);
         if (handler == null) {
             handler = defaultHandlerSupplier.get();
         }
@@ -129,11 +128,11 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
     }
 
     /**
-     * 根据方法调用的相关信息获取特定的同步方法调用处理器.
+     * 根据方法调用的相关信息获取特定的同步方法调用异常处理器.
      * @param methodInvoker
      * @return
      */
-    protected SyncMethodInvocationHandler determineSyncInvocationHandler(MethodInvoker methodInvoker) {
+    protected SyncMethodFailureHandler determineSyncFailureHandler(MethodInvoker methodInvoker) {
         return null;
     }
 

@@ -28,7 +28,7 @@ import org.springframework.core.GenericTypeResolver;
  * 基于注解的切面基础类, 根据指定的注解类型来定义切入点.
  * 
  * @author yangzexiong
- * @param <A>
+ * @param <A> 指定的标记注解
  */
 @SuppressWarnings({ "serial", "unchecked" })
 public abstract class AbstractAnnotationPointcutAdvisor<A extends Annotation> extends AbstractPointcutAdvisor {
@@ -40,6 +40,11 @@ public abstract class AbstractAnnotationPointcutAdvisor<A extends Annotation> ex
     private Pointcut pointcut;
 
     protected AbstractAnnotationPointcutAdvisor() {
+        this(true);
+    }
+
+    protected AbstractAnnotationPointcutAdvisor(boolean checkInherited) {
+        this.checkInherited = checkInherited;
         this.annotationType = (Class<A>) Objects.requireNonNull(
                 GenericTypeResolver.resolveTypeArgument(getClass(), AbstractAnnotationPointcutAdvisor.class),
                 "Annotation type must be specific");

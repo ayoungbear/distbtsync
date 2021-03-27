@@ -16,13 +16,13 @@
 package com.ayoungbear.distbtsync.spring;
 
 /**
- * 同步方法调用处理器.
+ * 同步方法调用异常处理器, 用于处理同步失败异常场景.
  * 
  * @author yangzexiong
  * @see Synchronizer
  * @see MethodInvoker
  */
-public interface SyncMethodInvocationHandler {
+public interface SyncMethodFailureHandler {
 
     /**
      * 在 {@linkplain Synchronizer acquire} 同步获取资源失败时, 根据给定的同步器和方法调用对象进行后续处理.

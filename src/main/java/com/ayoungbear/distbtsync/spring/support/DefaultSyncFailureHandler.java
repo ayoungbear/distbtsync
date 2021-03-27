@@ -15,45 +15,38 @@
  */
 package com.ayoungbear.distbtsync.spring.support;
 
-import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
-import com.ayoungbear.distbtsync.spring.SyncMethodInvocationHandler;
+import com.ayoungbear.distbtsync.spring.SyncFailureException;
+import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
 import com.ayoungbear.distbtsync.spring.Synchronizer;
 
 /**
- * 懒加载型 {@link SyncMethodInvocationHandler} 的实现类.
+ * 默认的同步方法调用处理器, 同步失败时抛异常处理.
  * 
  * @author yangzexiong
  */
-public class LazySyncMethodInvocationHandler implements SyncMethodInvocationHandler {
+public class DefaultSyncFailureHandler implements SyncMethodFailureHandler {
 
-    private Supplier<SyncMethodInvocationHandler> handlerSupplier;
-    private volatile SyncMethodInvocationHandler handler;
-
-    public LazySyncMethodInvocationHandler(Supplier<SyncMethodInvocationHandler> handlerSupplier) {
-        this.handlerSupplier = handlerSupplier;
-    }
+    private static final Logger logger = LoggerFactory.getLogger(DefaultSyncFailureHandler.class);
 
     @Override
     public void handleAcquireFailure(Synchronizer synchronizer, MethodInvoker methodInvoker) {
-        getHandler().handleAcquireFailure(synchronizer, methodInvoker);
+        String msg = "Failed to acquire synchronization for method '" + methodInvoker.getMethodDescription() + "'";
+        if (logger.isErrorEnabled()) {
+            logger.error(msg);
+        }
+        throw new SyncFailureException(msg);
     }
 
     @Override
     public void handleReleaseFailure(Synchronizer synchronizer, MethodInvoker methodInvoker) {
-        getHandler().handleReleaseFailure(synchronizer, methodInvoker);
-    }
-
-    public SyncMethodInvocationHandler getHandler() {
-        if (handler == null) {
-            synchronized (this) {
-                if (handler == null) {
-                    handler = handlerSupplier.get();
-                }
-            }
+        if (logger.isErrorEnabled()) {
+            String msg = "Failed to release synchronization for method '" + methodInvoker.getMethodDescription() + "'";
+            logger.error(msg);
         }
-        return handler;
     }
 
 }

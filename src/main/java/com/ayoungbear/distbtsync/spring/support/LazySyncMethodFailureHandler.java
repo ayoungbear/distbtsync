@@ -15,38 +15,46 @@
  */
 package com.ayoungbear.distbtsync.spring.support;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Supplier;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
-import com.ayoungbear.distbtsync.spring.SyncFailureException;
-import com.ayoungbear.distbtsync.spring.SyncMethodInvocationHandler;
+import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
 import com.ayoungbear.distbtsync.spring.Synchronizer;
 
 /**
- * 默认的同步方法调用处理器, 同步失败时抛异常处理.
+ * 懒加载型 {@link SyncMethodFailureHandler} 的实现类.
  * 
  * @author yangzexiong
  */
-public class DefaultSyncInvocationHandler implements SyncMethodInvocationHandler {
+public class LazySyncMethodFailureHandler implements SyncMethodFailureHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultSyncInvocationHandler.class);
+    private Supplier<SyncMethodFailureHandler> handlerSupplier;
+
+    private volatile SyncMethodFailureHandler handler;
+
+    public LazySyncMethodFailureHandler(Supplier<SyncMethodFailureHandler> handlerSupplier) {
+        this.handlerSupplier = handlerSupplier;
+    }
 
     @Override
     public void handleAcquireFailure(Synchronizer synchronizer, MethodInvoker methodInvoker) {
-        String msg = "Failed to acquire synchronization for method '" + methodInvoker.getMethodDescription() + "'";
-        if (logger.isErrorEnabled()) {
-            logger.error(msg);
-        }
-        throw new SyncFailureException(msg);
+        getHandler().handleAcquireFailure(synchronizer, methodInvoker);
     }
 
     @Override
     public void handleReleaseFailure(Synchronizer synchronizer, MethodInvoker methodInvoker) {
-        if (logger.isErrorEnabled()) {
-            String msg = "Failed to release synchronization for method '" + methodInvoker.getMethodDescription() + "'";
-            logger.error(msg);
+        getHandler().handleReleaseFailure(synchronizer, methodInvoker);
+    }
+
+    public SyncMethodFailureHandler getHandler() {
+        if (handler == null) {
+            synchronized (this) {
+                if (handler == null) {
+                    handler = handlerSupplier.get();
+                }
+            }
         }
+        return handler;
     }
 
 }

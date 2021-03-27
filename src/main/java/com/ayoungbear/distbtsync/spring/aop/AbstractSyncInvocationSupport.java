@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.util.StringUtils;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
-import com.ayoungbear.distbtsync.spring.SyncMethodInvocationHandler;
+import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
 
 /**
  * 同步方法调用拦截器支持类, 提供了一些便利的方法. 
@@ -39,7 +39,7 @@ public abstract class AbstractSyncInvocationSupport extends AbstractSyncMethodIn
 
     private BeanFactory beanFactory;
 
-    private Map<Method, SyncMethodInvocationHandler> handlerCache = new ConcurrentHashMap<>(256);
+    private Map<Method, SyncMethodFailureHandler> handlerCache = new ConcurrentHashMap<>(256);
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) {
@@ -47,15 +47,15 @@ public abstract class AbstractSyncInvocationSupport extends AbstractSyncMethodIn
     }
 
     @Override
-    protected SyncMethodInvocationHandler determineSyncInvocationHandler(MethodInvoker methodInvoker) {
+    protected SyncMethodFailureHandler determineSyncFailureHandler(MethodInvoker methodInvoker) {
         Method method = methodInvoker.getMethod();
         String qualifier = getHandlerQualifier(method);
         if (!StringUtils.hasText(qualifier)) {
             return null;
         }
-        SyncMethodInvocationHandler handler = handlerCache.get(method);
+        SyncMethodFailureHandler handler = handlerCache.get(method);
         if (handler == null) {
-            handler = getQualifierInvocationHandler(qualifier);
+            handler = getQualifierSyncFailureHandler(qualifier);
             handlerCache.put(method, handler);
         }
         return handler;
@@ -71,12 +71,12 @@ public abstract class AbstractSyncInvocationSupport extends AbstractSyncMethodIn
     }
 
     /**
-     * 根据给定的限定符由 {@linkplain org.springframework.beans.factory.BeanFactory getBean} 获取指定的处理器.
+     * 根据给定的限定符由 {@linkplain org.springframework.beans.factory.BeanFactory getBean} 获取指定的同步失败处理器.
      * @param qualifier
      * @return
      */
-    protected SyncMethodInvocationHandler getQualifierInvocationHandler(String qualifier) {
-        return getQualifierBean(qualifier, SyncMethodInvocationHandler.class);
+    protected SyncMethodFailureHandler getQualifierSyncFailureHandler(String qualifier) {
+        return getQualifierBean(qualifier, SyncMethodFailureHandler.class);
     }
 
     /**

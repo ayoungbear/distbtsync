@@ -136,8 +136,8 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
             }, "node-" + n);
         }
         countDownLatch.await();
-        logger.info("Concurrent count test end use lock={} cost {}ms sharedCount={}.",
-                lockSupplier.get().getClass().getSimpleName(), System.currentTimeMillis() - beginTime, count);
+        logger.info("Concurrent count test end use lock={} cost {}ms sharedCount={}.", lockSupplier.get(),
+                System.currentTimeMillis() - beginTime, count);
         // 断言最终计数的准确性
         Assert.assertEquals(nodeNum * threadNum * countTimes, count.intValue());
     }
