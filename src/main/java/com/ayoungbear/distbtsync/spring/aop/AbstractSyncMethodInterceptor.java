@@ -98,6 +98,9 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
                 if (!release(sync)) {
                     handlerSupplier.obtain().handleReleaseFailure(sync, methodInvoker);
                 }
+            } else {
+                // 方法调用结束后发现未持有互斥资源
+                handlerSupplier.obtain().handleHeldFailure(sync, methodInvoker);
             }
         }
     }

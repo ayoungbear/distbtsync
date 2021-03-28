@@ -49,4 +49,12 @@ public class DefaultSyncFailureHandler implements SyncMethodFailureHandler {
         }
     }
 
+    @Override
+    public void handleHeldFailure(Synchronizer synchronizer, MethodInvoker methodInvoker) {
+        if (logger.isErrorEnabled()) {
+            String msg = "Not held after invoke for method '" + methodInvoker.getMethodDescription() + "'";
+            logger.error(msg);
+        }
+    }
+
 }

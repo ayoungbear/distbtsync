@@ -41,4 +41,12 @@ public interface SyncMethodFailureHandler {
      */
     void handleReleaseFailure(Synchronizer synchronizer, MethodInvoker methodInvoker);
 
+    /**
+     * 在同步方法调用结束并由 {@linkplain Synchronizer isHeld} 判断当前线程已不持有互斥资源时, 
+     * 根据给定的同步器和方法调用对象进行后续处理.
+     * @param synchronizer
+     * @param methodInvoker
+     */
+    void handleHeldFailure(Synchronizer synchronizer, MethodInvoker methodInvoker);
+
 }
