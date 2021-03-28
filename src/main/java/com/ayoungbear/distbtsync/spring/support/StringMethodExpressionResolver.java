@@ -25,6 +25,7 @@ import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ParserContext;
 import org.springframework.expression.common.LiteralExpression;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
@@ -40,6 +41,7 @@ import com.ayoungbear.distbtsync.spring.MethodBasedExpressionResolver;
 public class StringMethodExpressionResolver extends SpelExpressionSupport
         implements MethodBasedExpressionResolver<String>, BeanFactoryAware, StringValueResolver {
 
+    @Nullable
     private ConfigurableBeanFactory beanFactory;
 
     public StringMethodExpressionResolver() {

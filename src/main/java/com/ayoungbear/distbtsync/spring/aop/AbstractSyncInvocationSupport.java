@@ -22,11 +22,12 @@ import java.util.function.Supplier;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
 import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
+import com.ayoungbear.distbtsync.spring.redis.RedisSyncUtils;
 
 /**
  * 同步方法调用拦截器支持类, 提供了一些便利的方法. 
@@ -42,11 +43,11 @@ public abstract class AbstractSyncInvocationSupport extends AbstractSyncMethodIn
 
     private Map<Method, SyncMethodFailureHandler> handlerCache = new ConcurrentHashMap<>(256);
 
-    protected AbstractSyncInvocationSupport(SyncMethodFailureHandler defaultHandler) {
+    protected AbstractSyncInvocationSupport(@Nullable SyncMethodFailureHandler defaultHandler) {
         super(defaultHandler);
     }
 
-    protected AbstractSyncInvocationSupport(Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
+    protected AbstractSyncInvocationSupport(@Nullable Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
         super(defaultHandlerSupplier);
     }
 
@@ -94,14 +95,11 @@ public abstract class AbstractSyncInvocationSupport extends AbstractSyncMethodIn
      * @return
      */
     protected <T> T getQualifierBean(String qualifier, Class<T> beanClass) {
-        if (StringUtils.hasText(qualifier)) {
-            if (beanFactory == null) {
-                throw new IllegalStateException("BeanFactory must be set on " + getClass().getSimpleName()
-                        + " to access qualified bean '" + qualifier + "' of type '" + beanClass.getSimpleName() + "'");
-            }
-            return BeanFactoryAnnotationUtils.qualifiedBeanOfType(beanFactory, beanClass, qualifier);
+        if (beanFactory == null) {
+            throw new IllegalStateException("BeanFactory must be set on " + getClass().getSimpleName()
+                    + " to access qualified bean '" + qualifier + "' of type '" + beanClass.getSimpleName() + "'");
         }
-        return null;
+        return RedisSyncUtils.getQualifierBean(beanFactory, qualifier, beanClass);
     }
 
 }

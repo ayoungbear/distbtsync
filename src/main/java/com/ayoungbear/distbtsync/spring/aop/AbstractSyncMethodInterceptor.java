@@ -22,11 +22,13 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
+import org.springframework.lang.Nullable;
 import org.springframework.util.function.SingletonSupplier;
 
 import com.ayoungbear.distbtsync.spring.MethodInvoker;
 import com.ayoungbear.distbtsync.spring.SyncMethodFailureHandler;
 import com.ayoungbear.distbtsync.spring.Synchronizer;
+import com.ayoungbear.distbtsync.spring.support.CachedMethodInvoker;
 import com.ayoungbear.distbtsync.spring.support.DefaultSyncFailureHandler;
 
 /**
@@ -48,12 +50,12 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
         this.defaultHandlerSupplier = SingletonSupplier.of(DefaultSyncFailureHandler::new);
     }
 
-    protected AbstractSyncMethodInterceptor(SyncMethodFailureHandler defaultHandler) {
+    protected AbstractSyncMethodInterceptor(@Nullable SyncMethodFailureHandler defaultHandler) {
         this.defaultHandlerSupplier = new SingletonSupplier<SyncMethodFailureHandler>(defaultHandler,
                 DefaultSyncFailureHandler::new);
     }
 
-    protected AbstractSyncMethodInterceptor(Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
+    protected AbstractSyncMethodInterceptor(@Nullable Supplier<SyncMethodFailureHandler> defaultHandlerSupplier) {
         this.defaultHandlerSupplier = new SingletonSupplier<SyncMethodFailureHandler>(defaultHandlerSupplier,
                 DefaultSyncFailureHandler::new);
     }

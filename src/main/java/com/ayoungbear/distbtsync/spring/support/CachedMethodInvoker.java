@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ayoungbear.distbtsync.spring.aop;
+package com.ayoungbear.distbtsync.spring.support;
 
 import java.lang.reflect.Method;
 
@@ -27,7 +27,7 @@ import com.ayoungbear.distbtsync.spring.MethodInvoker;
 
 /**
  * 依赖于 {@link org.aopalliance.intercept.MethodInvocation} 来实现, 会缓存方法的执行结果, 
- * 重复调用会返回之前执行的结果, 而不会触发再次调用.
+ * 重复调用会返回之前执行的结果.
  * 
  * @author yangzexiong
  * @see org.aopalliance.intercept.MethodInvocation
