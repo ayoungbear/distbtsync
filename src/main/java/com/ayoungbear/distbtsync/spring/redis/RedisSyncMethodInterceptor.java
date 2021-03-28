@@ -18,6 +18,7 @@ package com.ayoungbear.distbtsync.spring.redis;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.springframework.beans.factory.BeanFactory;
@@ -143,20 +144,23 @@ public class RedisSyncMethodInterceptor extends AbstractSyncInvocationSupport
             key = getDefaultSyncKey(methodInvoker);
         }
 
+        // 时间单位
+        TimeUnit timeUnit = redisSync.timeUnit();
         // 解析过期时间
         long leaseTimeMills = this.defaultLeaseTimeMillis;
         String leaseTimeString = redisSync.leaseTime();
         if (StringUtils.hasText(leaseTimeString)) {
             leaseTimeString = evaluate(leaseTimeString, method, target, arguments);
-            leaseTimeMills = convertTimeStrValue(leaseTimeString);
+            Long leaseTime = convertTimeStrValue(leaseTimeString);
+            leaseTimeMills = timeUnit.toMillis(leaseTime);
         }
-        
         // 解析等待超时时间
         long waitTimeMills = this.defaultWaitTimeMillis;
         String waitTimeString = redisSync.waitTime();
         if (StringUtils.hasText(waitTimeString)) {
             waitTimeString = evaluate(waitTimeString, method, target, arguments);
-            waitTimeMills = convertTimeStrValue(waitTimeString);
+            Long waitTime = convertTimeStrValue(waitTimeString);
+            waitTimeMills = timeUnit.toMillis(waitTime);
         }
 
         return RedisSyncAttribute.create().setName(key).setLeaseTimeMillis(leaseTimeMills)
