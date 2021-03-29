@@ -599,7 +599,7 @@ public abstract class AbstractRedisBasedLockTest extends BaseSpringRedisTest {
             list.add(new long[1 << 16]);
             logger.info("SharedSyncCacheSize={} SharedSyncCacheKeySet={}",
                     (newSize = RedisBasedLock.getSharedSyncCacheSize()), RedisBasedLock.getSharedSyncCacheKeySet());
-            sleep(1);
+            sleep(100, TimeUnit.MILLISECONDS);
         }
         Assert.assertTrue(RedisBasedLock.getSharedSyncCacheSize() <= size);
     }
