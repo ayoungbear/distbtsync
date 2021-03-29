@@ -38,8 +38,6 @@ public class RedisSyncUtils {
 
     public static final String REDIS_SYNC_POST_PROCESSOR_NAME = "com.ayoungbear.distbtsync.spring.redis.RedisSyncAnnotationPostProcessor";
 
-    public static final String REDIS_SYNC_SYNCHRONIZER_PROVIDER_BEAN_NAME = "redisSynchronizerProvider";
-
     /**
      * 根据给定的限定符由 {@linkplain org.springframework.beans.factory.BeanFactory getBean} 获取指定的 bean.
      * @param qualifier

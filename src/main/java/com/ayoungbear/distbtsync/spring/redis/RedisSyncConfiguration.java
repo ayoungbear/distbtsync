@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -69,7 +68,7 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
 
     @Bean(RedisSyncUtils.REDIS_SYNC_POST_PROCESSOR_NAME)
     public RedisSyncAnnotationPostProcessor redisSyncAnnotationPostProcessor(
-            @Autowired(required = false) @Qualifier(RedisSyncUtils.REDIS_SYNC_SYNCHRONIZER_PROVIDER_BEAN_NAME) RedisSynchronizerProvider redisSynchronizerProvider) {
+            @Autowired(required = false) RedisSynchronizerProvider redisSynchronizerProvider) {
         Supplier<RedisSynchronizerProvider> defaultSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
                 redisSynchronizerProvider, () -> defaultRedisSynchronizerProvider(redisConnectionFactory));
         Supplier<RedisSynchronizerProvider> synchronizerProviderSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
