@@ -64,9 +64,9 @@ public class RedisSyncAnnotationUseRedissonTest extends BaseRedisSyncAnnotationT
         }
 
         @Override
-        public RedisSynchronizer getSynchronizer(RedisSyncAttribute attribute) {
-            return new RedissonSynchronizer(redissonClient.getLock(attribute.getKey()), attribute.getWaitTimeMillis(),
-                    attribute.getLeaseTimeMillis());
+        public RedisSynchronizer getSynchronizer(RedisSyncAttributes attributes) {
+            return new RedissonSynchronizer(redissonClient.getLock(attributes.getKey()), attributes.getWaitTimeMillis(),
+                    attributes.getLeaseTimeMillis());
         }
 
     }

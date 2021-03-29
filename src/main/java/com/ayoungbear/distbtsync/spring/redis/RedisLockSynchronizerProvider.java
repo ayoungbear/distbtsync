@@ -49,9 +49,9 @@ public class RedisLockSynchronizerProvider implements RedisSynchronizerProvider 
     }
 
     @Override
-    public RedisSynchronizer getSynchronizer(RedisSyncAttribute attribute) {
-        RedisLock lock = getRedisLock(attribute.getKey());
-        RedisLockOperation lockOperation = determineLockOperation(attribute);
+    public RedisSynchronizer getSynchronizer(RedisSyncAttributes attributes) {
+        RedisLock lock = getRedisLock(attributes.getKey());
+        RedisLockOperation lockOperation = determineLockOperation(attributes);
         return new RedisLockSynchronizer(lock, lockOperation);
     }
 
@@ -73,7 +73,7 @@ public class RedisLockSynchronizerProvider implements RedisSynchronizerProvider 
      * @param attribute
      * @return
      */
-    protected RedisLockOperation determineLockOperation(RedisSyncAttribute attribute) {
+    protected RedisLockOperation determineLockOperation(RedisSyncAttributes attribute) {
         long leaseTime = attribute.getLeaseTimeMillis();
         long waitTime = attribute.getWaitTimeMillis();
 

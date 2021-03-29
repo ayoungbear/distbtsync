@@ -71,9 +71,9 @@ public class RedisSyncMethodInterceptor extends AbstractSyncInvocationSupport
 
     @Override
     public Synchronizer determineSynchronizer(MethodInvoker methodInvoker) {
-        RedisSyncAttribute redisSyncAttribute = resolveRedisSyncAttribute(methodInvoker);
+        RedisSyncAttributes redisSyncAttributes = resolveRedisSyncAttributes(methodInvoker);
         // 提供同步相关的属性, 将获取同步器的实际操作委托给提供者实现
-        RedisSynchronizer redisSynchronizer = synchronizerProvider.getSynchronizer(redisSyncAttribute);
+        RedisSynchronizer redisSynchronizer = synchronizerProvider.getSynchronizer(redisSyncAttributes);
         if (redisSynchronizer == null) {
             throw new IllegalStateException(
                     "Synchronizer is required for method '" + methodInvoker.getMethodDescription() + "'");
@@ -128,7 +128,7 @@ public class RedisSyncMethodInterceptor extends AbstractSyncInvocationSupport
      * @param methodInvoker
      * @return
      */
-    protected RedisSyncAttribute resolveRedisSyncAttribute(MethodInvoker methodInvoker) {
+    protected RedisSyncAttributes resolveRedisSyncAttributes(MethodInvoker methodInvoker) {
         // 解析所需相关信息
         Method method  = methodInvoker.getMethod();
         Object target = methodInvoker.getTarget();
@@ -163,7 +163,7 @@ public class RedisSyncMethodInterceptor extends AbstractSyncInvocationSupport
             waitTimeMills = timeUnit.toMillis(waitTime);
         }
 
-        return RedisSyncAttribute.create().setName(key).setLeaseTimeMillis(leaseTimeMills)
+        return RedisSyncAttributes.create().setName(key).setLeaseTimeMillis(leaseTimeMills)
                 .setWaitTimeMillis(waitTimeMills).setHandlerQualifier(() -> getHandlerQualifier(method));
     }
 

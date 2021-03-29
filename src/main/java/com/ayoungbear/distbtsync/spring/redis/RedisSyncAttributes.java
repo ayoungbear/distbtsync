@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  * @author yangzexiong
  * @see RedisSync
  */
-public class RedisSyncAttribute {
+public class RedisSyncAttributes {
 
     /**
      * 同步所用键值
@@ -44,8 +44,8 @@ public class RedisSyncAttribute {
 
     private Supplier<String> handlerQualifierSupplier;
 
-    public static RedisSyncAttribute create() {
-        return new RedisSyncAttribute();
+    public static RedisSyncAttributes create() {
+        return new RedisSyncAttributes();
     }
 
     public String getName() {
@@ -56,7 +56,7 @@ public class RedisSyncAttribute {
         return name;
     }
 
-    public RedisSyncAttribute setName(String name) {
+    public RedisSyncAttributes setName(String name) {
         this.name = name;
         return this;
     }
@@ -65,7 +65,7 @@ public class RedisSyncAttribute {
         return leaseTimeMillis;
     }
 
-    public RedisSyncAttribute setLeaseTimeMillis(long leaseTimeMillis) {
+    public RedisSyncAttributes setLeaseTimeMillis(long leaseTimeMillis) {
         this.leaseTimeMillis = leaseTimeMillis;
         return this;
     }
@@ -74,7 +74,7 @@ public class RedisSyncAttribute {
         return waitTimeMillis;
     }
 
-    public RedisSyncAttribute setWaitTimeMillis(long waitTimeMillis) {
+    public RedisSyncAttributes setWaitTimeMillis(long waitTimeMillis) {
         this.waitTimeMillis = waitTimeMillis;
         return this;
     }
@@ -86,12 +86,12 @@ public class RedisSyncAttribute {
         return handlerQualifier;
     }
 
-    public RedisSyncAttribute setHandlerQualifier(String handlerQualifier) {
+    public RedisSyncAttributes setHandlerQualifier(String handlerQualifier) {
         this.handlerQualifier = handlerQualifier;
         return this;
     }
 
-    public RedisSyncAttribute setHandlerQualifier(Supplier<String> handlerQualifierSupplier) {
+    public RedisSyncAttributes setHandlerQualifier(Supplier<String> handlerQualifierSupplier) {
         this.handlerQualifierSupplier = handlerQualifierSupplier;
         return this;
     }

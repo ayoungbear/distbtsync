@@ -24,10 +24,10 @@ package com.ayoungbear.distbtsync.spring.redis;
 public interface RedisSynchronizerProvider {
 
     /**
-     * 根据给定的同步相关属性 {@code attribute}, 返回相应的同步器 {@link RedisSynchronizer} 实现类.
-     * @param attribute
+     * 根据给定的同步相关属性 {@code attributes}, 返回相应的同步器 {@link RedisSynchronizer} 实现类.
+     * @param attributes
      * @return
      */
-    RedisSynchronizer getSynchronizer(RedisSyncAttribute attribute);
+    RedisSynchronizer getSynchronizer(RedisSyncAttributes attributes);
 
 }

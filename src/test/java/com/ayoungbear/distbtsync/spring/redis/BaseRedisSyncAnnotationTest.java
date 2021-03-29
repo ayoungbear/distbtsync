@@ -324,9 +324,9 @@ public abstract class BaseRedisSyncAnnotationTest extends BaseSpringTest {
         }
 
         @Override
-        public RedisSynchronizer getSynchronizer(RedisSyncAttribute attribute) {
-            RedisLock lock = getRedisLock(attribute.getKey());
-            RedisLockOperation lockOperation = determineLockOperation(attribute);
+        public RedisSynchronizer getSynchronizer(RedisSyncAttributes attributes) {
+            RedisLock lock = getRedisLock(attributes.getKey());
+            RedisLockOperation lockOperation = determineLockOperation(attributes);
             return new MyRedisSynchronizer(lock, lockOperation);
         }
 
