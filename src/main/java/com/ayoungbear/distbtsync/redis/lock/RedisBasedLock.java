@@ -16,11 +16,13 @@
 package com.ayoungbear.distbtsync.redis.lock;
 
 import java.lang.ref.WeakReference;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import java.util.stream.Collectors;
 
 import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
 
@@ -83,6 +85,14 @@ public class RedisBasedLock extends AbstractRedisLock {
      */
     public static int getSharedSyncCacheSize() {
         return Sync.syncQueueCache.size();
+    }
+
+    /**
+     * 获取已缓存的共享阻塞队列对应分布式锁名称的集合.
+     * @return
+     */
+    public static Set<String> getSharedSyncCacheKeySet() {
+        return Sync.syncQueueCache.keySet().stream().map((sync) -> sync.key).collect(Collectors.toSet());
     }
 
     @Override
