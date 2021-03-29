@@ -62,6 +62,17 @@ import com.ayoungbear.distbtsync.spring.support.StringMethodExpressionResolver;
  * 如果有需要使用自定义的相关功能, 比如自定义同步器提供者或者表达式解析器等, 可通过 {@link RedisSyncConfigurer}
  * 来配置, 只需要实现需自定义的功能接口即可, 未实现的将使用默认的配置. 对于自定义同步器提供者 
  * {@link RedisSynchronizerProvider} 实现类, 可通过上述方式配置, 也可以通过在 Spring 上下文中注册指定对象来实现.
+ * 例如:
+ * 
+ * <pre class="code">
+ * &#064;Configuration
+ * &#064;EnableRedisSync
+ * public class MyRedisSyncConfiguration {
+ *     &#064;Bean
+ *     public RedisSynchronizerProvider redisSynchronizerProvider() {
+ *         return new MyRedisSynchronizerProvider();
+ *     }
+ * }</pre>
  * 
  * @author yangzexiong
  * @see RedisSync
