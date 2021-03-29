@@ -101,7 +101,7 @@ public abstract class BaseTest {
         }
         try {
             logger.info("Waiting for the end");
-            countDownLatch.await(20, TimeUnit.SECONDS);
+            countDownLatch.await();
         } catch (Exception e) {
             logger.error("Await error", e);
         }

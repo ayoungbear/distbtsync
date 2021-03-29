@@ -1,4 +1,4 @@
-package com.ayoungbear.distbtsync.redis;
+package com.ayoungbear.distbtsync;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -12,7 +12,6 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.ClusterServersConfig;
 import org.redisson.config.Config;
 
-import com.ayoungbear.distbtsync.BaseTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisPoolCommandsAdapter;
 import com.ayoungbear.distbtsync.redis.lock.support.LettuceClientCommandsAdapter;
@@ -60,24 +59,26 @@ public abstract class BaseRedisTest extends BaseTest {
 
     protected static final RedisClient redisClient = newRedisClient();
 
-    protected static JedisCluster getJedisCluster(int maxTotal) {
+    public static JedisCluster getJedisCluster(int maxTotal) {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
         config.setMaxTotal(maxTotal);
         JedisCluster jedisCluster = new JedisCluster(new HashSet<>(redisClusterNodes), config);
         return jedisCluster;
     }
 
-    protected static JedisPool getJedisPool() {
+    public static JedisPool getJedisPool() {
         JedisPool jedisPool = new JedisPool("redis://" + SINGLE_REDIS_HOST);
         return jedisPool;
     }
 
-    protected static RedissonClient getRedissonClient(int subscriptionConnectionPoolSize) {
+    public static RedissonClient getRedissonClient(int size) {
         Config config = new Config();
         ClusterServersConfig clustConfig = config.useClusterServers()
                 .addNodeAddress(redisClusterNodes.stream().map((nodeAddress) -> "redis://" + nodeAddress.toString())
                         .collect(Collectors.toList()).toArray(new String[0]));
-        clustConfig.setSubscriptionConnectionPoolSize(subscriptionConnectionPoolSize);
+        clustConfig.setSubscriptionConnectionPoolSize(size);
+        clustConfig.setMasterConnectionPoolSize(size);
+        clustConfig.setSlaveConnectionPoolSize(size);
         RedissonClient redissonClient = Redisson.create(config);
         return redissonClient;
     }
@@ -86,7 +87,7 @@ public abstract class BaseRedisTest extends BaseTest {
         return redisClusterClient;
     }
 
-    protected static RedisClusterClient newRedisClusterClient() {
+    public static RedisClusterClient newRedisClusterClient() {
         return RedisClusterClient.create(RedisClusterURIUtil.toRedisURIs(URI.create("redis://" + HOST_AND_PORT)));
     }
 
@@ -94,7 +95,7 @@ public abstract class BaseRedisTest extends BaseTest {
         return redisClient;
     }
 
-    protected static RedisClient newRedisClient() {
+    public static RedisClient newRedisClient() {
         return RedisClient.create(RedisURI.create("redis://" + SINGLE_REDIS_HOST));
     }
 

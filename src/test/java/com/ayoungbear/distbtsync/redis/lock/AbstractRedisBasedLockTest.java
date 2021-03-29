@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
+import com.ayoungbear.distbtsync.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 
 /**
@@ -586,25 +586,22 @@ public abstract class AbstractRedisBasedLockTest extends BaseSpringRedisTest {
      */
     @Test
     public void testAutoCleanSharedQueue() {
-        int i = 1;
-        List<long[]> list = new LinkedList<>();
-        while (i > 0) {
-            list.add(new long[1024 * 1024]);
-            i = RedisBasedLock.getSharedSyncCacheSize();
-        }
-        Assert.assertEquals(0, RedisBasedLock.getSharedSyncCacheSize());
+        int size = RedisBasedLock.getSharedSyncCacheSize();
         RedisBasedLock lock = RedisBasedLock.newSharedLock(key, new JedisClusterCommandsAdapter(getJedisCluster(20)));
         lock.lock();
         lock.unlock();
-        Assert.assertEquals(1, RedisBasedLock.getSharedSyncCacheSize());
+        int newSize = RedisBasedLock.getSharedSyncCacheSize();
+        Assert.assertEquals(size+1, newSize);
         lock = null;
-        Assert.assertEquals(1, RedisBasedLock.getSharedSyncCacheSize());
-        i = RedisBasedLock.getSharedSyncCacheSize();
-        while (i > 0) {
-            list.add(new long[1024 * 1024]);
-            i = RedisBasedLock.getSharedSyncCacheSize();
+        Assert.assertEquals(size+1, RedisBasedLock.getSharedSyncCacheSize());
+        List<long[]> list = new LinkedList<>();
+        while (newSize > size) {
+            list.add(new long[1 << 16]);
+            logger.info("SharedSyncCacheSize={} SharedSyncCacheKeySet={}",
+                    (newSize = RedisBasedLock.getSharedSyncCacheSize()), RedisBasedLock.getSharedSyncCacheKeySet());
+            sleep(1);
         }
-        Assert.assertEquals(0, RedisBasedLock.getSharedSyncCacheSize());
+        Assert.assertTrue(RedisBasedLock.getSharedSyncCacheSize() <= size);
     }
 
 }

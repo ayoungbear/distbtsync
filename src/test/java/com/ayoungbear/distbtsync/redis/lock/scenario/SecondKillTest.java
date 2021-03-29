@@ -15,7 +15,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
+import com.ayoungbear.distbtsync.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
 import com.ayoungbear.distbtsync.redis.lock.RedisLock;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
@@ -190,8 +190,8 @@ public class SecondKillTest extends BaseSpringRedisTest {
 
         // 总共抢到的商品数
         int actGoodsNum = luckyDogs.values().stream().mapToInt((num) -> num.intValue()).sum();
-        logger.info("SecKill end use lock={} the actual goods num={} and congratulations the lucky dogs! {}",
-                lockSupplier.get(), actGoodsNum, getLukyNames());
+        logger.info("SecKill end the actual goods num={} use lock={} and congratulations the lucky dogs! {}",
+                actGoodsNum, lockSupplier.get(), getLukyNames());
 
         // 断言
         Assert.assertEquals(goodsNum, actGoodsNum);

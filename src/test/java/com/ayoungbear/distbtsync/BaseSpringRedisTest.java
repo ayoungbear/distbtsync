@@ -1,4 +1,4 @@
-package com.ayoungbear.distbtsync.redis;
+package com.ayoungbear.distbtsync;
 
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

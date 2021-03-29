@@ -12,7 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ayoungbear.distbtsync.redis.BaseSpringRedisTest;
+import com.ayoungbear.distbtsync.BaseSpringRedisTest;
 import com.ayoungbear.distbtsync.redis.lock.RedisBasedLock;
 import com.ayoungbear.distbtsync.redis.lock.support.JedisClusterCommandsAdapter;
 
@@ -136,8 +136,8 @@ public class DistributedConcurrentCountTest extends BaseSpringRedisTest {
             }, "node-" + n);
         }
         countDownLatch.await();
-        logger.info("Concurrent count test end use lock={} cost {}ms sharedCount={}.", lockSupplier.get(),
-                System.currentTimeMillis() - beginTime, count);
+        logger.info("Concurrent count test end cost {}ms use lock={} sharedCount={}.",
+                System.currentTimeMillis() - beginTime, lockSupplier.get(), count);
         // 断言最终计数的准确性
         Assert.assertEquals(nodeNum * threadNum * countTimes, count.intValue());
     }
