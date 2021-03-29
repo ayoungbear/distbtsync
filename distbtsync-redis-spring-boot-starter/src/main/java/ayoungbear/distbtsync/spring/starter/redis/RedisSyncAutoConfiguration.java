@@ -15,6 +15,34 @@
  */
 package ayoungbear.distbtsync.spring.starter.redis;
 
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.context.annotation.Configuration;
+
+import com.ayoungbear.distbtsync.spring.redis.EnableRedisSync;
+import com.ayoungbear.distbtsync.spring.redis.RedisSync;
+
+/**
+ * 基于 Redis 的分布式同步注解 {@link RedisSync} 自动配置类.
+ * 
+ * @author yangzexiong
+ */
+@Configuration(proxyBeanMethods = false)
+@AutoConfigureAfter(RedisAutoConfiguration.class)
+@ConditionalOnProperty(prefix = "ayoungbear.distbtsync.spring.redis", name = "auto", havingValue = "true", matchIfMissing = true)
 public class RedisSyncAutoConfiguration {
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableRedisSync(proxyTargetClass = false)
+    @ConditionalOnProperty(prefix = "ayoungbear.distbtsync.spring.redis", name = "proxy-target-class", havingValue = "false", matchIfMissing = false)
+    static class RedisSyncJdkDynamicAutoProxyConfiguration {
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableRedisSync(proxyTargetClass = true)
+    @ConditionalOnProperty(prefix = "ayoungbear.distbtsync.spring.redis", name = "proxy-target-class", havingValue = "true", matchIfMissing = true)
+    static class RedisSyncCglibAutoProxyConfiguration {
+    }
 
 }
