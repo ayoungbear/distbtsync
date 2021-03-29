@@ -20,8 +20,7 @@ import java.util.function.Supplier;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,6 +54,8 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
 
     private RedisSyncProperties properties;
 
+    private RedisConnectionFactory redisConnectionFactory;
+
     @Nullable
     private RedisSynchronizerProvider customizedSynchronizer;
     @Nullable
@@ -68,13 +69,17 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
 
     @Bean(RedisSyncUtils.REDIS_SYNC_POST_PROCESSOR_NAME)
     public RedisSyncAnnotationPostProcessor redisSyncAnnotationPostProcessor(
-            @Autowired(required = false) RedisSynchronizerProvider redisSynchronizerProvider) {
-        if (redisSynchronizerProvider == null && customizedSynchronizer == null) {
+            @Autowired(required = false) @Qualifier(RedisSyncUtils.REDIS_SYNC_SYNCHRONIZER_PROVIDER_BEAN_NAME) RedisSynchronizerProvider redisSynchronizerProvider) {
+        Supplier<RedisSynchronizerProvider> defaultSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
+                redisSynchronizerProvider, () -> defaultRedisSynchronizerProvider(redisConnectionFactory));
+        Supplier<RedisSynchronizerProvider> synchronizerProviderSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
+                customizedSynchronizer, defaultSupplier);
+
+        RedisSynchronizerProvider synchronizerProvider = synchronizerProviderSupplier.get();
+        if (synchronizerProvider == null) {
             throw new BeanCreationException(RedisSyncUtils.REDIS_SYNC_POST_PROCESSOR_NAME,
                     "The RedisSynchronizerProvider must be provided");
         }
-        Supplier<RedisSynchronizerProvider> synchronizerProviderSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
-                customizedSynchronizer, () -> redisSynchronizerProvider);
 
         RedisSyncAnnotationAdvisor advisor = new RedisSyncAnnotationAdvisor(synchronizerProviderSupplier.get(),
                 resolverSupplier, defaultHandlerSupplier);
@@ -93,14 +98,6 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
         return postProcessor;
     }
 
-    @Bean
-    @ConditionalOnBean(RedisConnectionFactory.class)
-    @ConditionalOnMissingBean(RedisSynchronizerProvider.class)
-    public RedisSynchronizerProvider redisSynchronizerProvider(RedisConnectionFactory redisConnectionFactory) {
-        RedisLockCommands commands = determineRedisLockCommands(redisConnectionFactory);
-        return new RedisLockSynchronizerProvider(commands);
-    }
-
     @Autowired(required = false)
     void setConfigurers(Collection<RedisSyncConfigurer> configurers) {
         if (CollectionUtils.isEmpty(configurers)) {
@@ -113,6 +110,20 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
         this.customizedSynchronizer = configurer.getRedisSynchronizerProvider();
         this.resolverSupplier = configurer::getMethodBasedExpressionResolver;
         this.defaultHandlerSupplier = configurer::getSyncMethodFailureHandler;
+    }
+
+    @Autowired(required = false)
+    void setRedisConnectionFactory(RedisConnectionFactory redisConnectionFactory) {
+        this.redisConnectionFactory = redisConnectionFactory;
+    }
+
+    protected RedisSynchronizerProvider defaultRedisSynchronizerProvider(
+            RedisConnectionFactory redisConnectionFactory) {
+        if (redisConnectionFactory == null) {
+            return null;
+        }
+        RedisLockCommands commands = determineRedisLockCommands(redisConnectionFactory);
+        return new RedisLockSynchronizerProvider(commands);
     }
 
     protected RedisLockCommands determineRedisLockCommands(RedisConnectionFactory redisConnectionFactory) {
