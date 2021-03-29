@@ -81,8 +81,8 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
                     "The RedisSynchronizerProvider must be provided");
         }
 
-        RedisSyncAnnotationAdvisor advisor = new RedisSyncAnnotationAdvisor(synchronizerProviderSupplier.get(),
-                resolverSupplier, defaultHandlerSupplier);
+        RedisSyncAnnotationAdvisor advisor = new RedisSyncAnnotationAdvisor(synchronizerProvider, resolverSupplier,
+                defaultHandlerSupplier);
         if (properties.getDefaultLeaseTime() != null) {
             advisor.setDefaultLeaseTimeMillis(properties.getDefaultLeaseTime());
         }
