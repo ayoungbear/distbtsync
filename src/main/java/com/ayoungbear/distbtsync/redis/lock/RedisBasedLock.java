@@ -170,10 +170,8 @@ public class RedisBasedLock extends AbstractRedisLock {
                 boolean releaseSuccessful = holdCount >= 0;
                 if (holdCount <= 0) {
                     removeIdentifier();
-                    // 解锁后唤醒其他等待者争用锁
-                    if (!fair) {
-                        sync.signal();
-                    }
+                    // 解锁时自动唤醒阻塞线程, 虽然多触发一次自旋, 但一定程度防止了死锁的发生, 并且在高并发下减少了消息通知的延迟影响
+                    sync.signal();
                 }
                 return releaseSuccessful;
             }
