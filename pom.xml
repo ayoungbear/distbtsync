@@ -91,7 +91,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
                 <configuration>
                     <source>${source.version}</source>
                     <target>${source.version}</target>
@@ -102,7 +101,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.0</version>
                 <configuration> 
                     <encoding>${project.build.sourceEncoding}</encoding> 
                 </configuration> 
@@ -128,6 +126,8 @@
                        </execution>
                 </executions>
                 <configuration>
+                	<level>public</level>
+                    <additionalJOption>-Xdoclint:none</additionalJOption>
                     <charset>UTF-8</charset>
                     <encoding>UTF-8</encoding>
                     <docencoding>UTF-8</docencoding>
