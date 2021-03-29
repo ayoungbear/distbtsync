@@ -105,7 +105,7 @@ public class RedisSyncAnnotationUseRedissonTest extends BaseRedisSyncAnnotationT
                 if (expired) {
                     // 有设置过期时间
                     try {
-                        return lock.tryLock(Long.MAX_VALUE, leaseTime, TimeUnit.MILLISECONDS);
+                        return lock.tryLock(0, leaseTime, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException e) {
                         return false;
                     }
