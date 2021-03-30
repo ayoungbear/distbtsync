@@ -120,14 +120,14 @@ public class RedisSyncAnnotationPostProcessor extends AbstractBeanFactoryAwareAd
                 String leaseTime = redisSync.leaseTime();
                 if (StringUtils.hasText(leaseTime)) {
                     leaseTime = resolveEmbeddedValue(leaseTime);
-                    Long.valueOf(leaseTime);
+                    convertTimeStrValue(leaseTime);
                 }
 
                 // 校验超时时间表达式占位符
                 String waitTime = redisSync.waitTime();
                 if (StringUtils.hasText(waitTime)) {
                     waitTime = resolveEmbeddedValue(waitTime);
-                    Long.valueOf(waitTime);
+                    convertTimeStrValue(waitTime);
                 }
 
                 String qualifier = redisSync.handlerQualifier();
@@ -157,6 +157,14 @@ public class RedisSyncAnnotationPostProcessor extends AbstractBeanFactoryAwareAd
             return beanFactory.resolveEmbeddedValue(value);
         }
         return value;
+    }
+
+    private Long convertTimeStrValue(String timeString) {
+        try {
+            return Long.valueOf(timeString);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid time string value '" + timeString + "'", e);
+        }
     }
 
 }

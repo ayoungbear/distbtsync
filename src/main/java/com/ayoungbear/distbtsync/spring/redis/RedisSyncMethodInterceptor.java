@@ -147,24 +147,24 @@ public class RedisSyncMethodInterceptor extends AbstractSyncInvocationSupport
         // 时间单位
         TimeUnit timeUnit = redisSync.timeUnit();
         // 解析过期时间
-        long leaseTimeMills = this.defaultLeaseTimeMillis;
+        long leaseTimeMillis = this.defaultLeaseTimeMillis;
         String leaseTimeString = redisSync.leaseTime();
         if (StringUtils.hasText(leaseTimeString)) {
             leaseTimeString = evaluate(leaseTimeString, method, target, arguments);
             Long leaseTime = convertTimeStrValue(leaseTimeString);
-            leaseTimeMills = timeUnit.toMillis(leaseTime);
+            leaseTimeMillis = timeUnit.toMillis(leaseTime);
         }
         // 解析等待超时时间
-        long waitTimeMills = this.defaultWaitTimeMillis;
+        long waitTimeMillis = this.defaultWaitTimeMillis;
         String waitTimeString = redisSync.waitTime();
         if (StringUtils.hasText(waitTimeString)) {
             waitTimeString = evaluate(waitTimeString, method, target, arguments);
             Long waitTime = convertTimeStrValue(waitTimeString);
-            waitTimeMills = timeUnit.toMillis(waitTime);
+            waitTimeMillis = timeUnit.toMillis(waitTime);
         }
 
-        return RedisSyncAttributes.create().setName(key).setLeaseTimeMillis(leaseTimeMills)
-                .setWaitTimeMillis(waitTimeMills).setHandlerQualifier(() -> getHandlerQualifier(method));
+        return RedisSyncAttributes.create().setName(key).setLeaseTimeMillis(leaseTimeMillis)
+                .setWaitTimeMillis(waitTimeMillis).setHandlerQualifier(() -> getHandlerQualifier(method));
     }
 
     /**

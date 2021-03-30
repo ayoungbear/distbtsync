@@ -56,7 +56,7 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
     private RedisConnectionFactory redisConnectionFactory;
 
     @Nullable
-    private RedisSynchronizerProvider customizedSynchronizer;
+    private Supplier<RedisSynchronizerProvider> customizedSynchronizerSupplier;
     @Nullable
     private Supplier<MethodBasedExpressionResolver<String>> resolverSupplier;
     @Nullable
@@ -72,7 +72,7 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
         Supplier<RedisSynchronizerProvider> defaultSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
                 redisSynchronizerProvider, () -> defaultRedisSynchronizerProvider(redisConnectionFactory));
         Supplier<RedisSynchronizerProvider> synchronizerProviderSupplier = new SingletonSupplier<RedisSynchronizerProvider>(
-                customizedSynchronizer, defaultSupplier);
+                customizedSynchronizerSupplier, defaultSupplier);
 
         RedisSynchronizerProvider synchronizerProvider = synchronizerProviderSupplier.get();
         if (synchronizerProvider == null) {
@@ -106,7 +106,7 @@ public class RedisSyncConfiguration extends AbstractImportAnnotationConfiguratio
             throw new IllegalStateException("Only one RedisSyncConfigurer may exist");
         }
         RedisSyncConfigurer configurer = configurers.iterator().next();
-        this.customizedSynchronizer = configurer.getRedisSynchronizerProvider();
+        this.customizedSynchronizerSupplier = configurer::getRedisSynchronizerProvider;
         this.resolverSupplier = configurer::getMethodBasedExpressionResolver;
         this.defaultHandlerSupplier = configurer::getSyncMethodFailureHandler;
     }
