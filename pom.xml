@@ -3,7 +3,7 @@
 	
 	<groupId>ayoungbear</groupId>
 	<artifactId>distbtsync</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	
 	<name>Distbtsync</name>
 	<description>A convenient SDK for synchronization in distributed scenarios based on Spring framework</description>
