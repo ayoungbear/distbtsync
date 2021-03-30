@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.ayoungbear.distbtsync.spring.redis.RedisSync;
@@ -39,9 +40,10 @@ public class RedisSyncConcurrentCountService {
     private StringRedisTemplate stringRedisTemplate;
 
     /**
-     * 测试分布式场景下的并发计数, 这里使用 redis 来作为数据库.
+     * 异步调用方式, 测试分布式场景下的并发计数, 这里使用 redis 来作为数据库.
      * 这里同步使用的 key 是 SpEL 表达式, 最终解析的结果为 'test_RedisSyncConcurrentCountService_concurrentAdd'.
      */
+    @Async
     @RedisSync("test_#{#targetClass.getSimpleName()}_#{#methodName}")
     public void concurrentAdd() {
         // 先获取数据

@@ -15,7 +15,6 @@
  */
 package ayoungbear.distbtsync.demo.redis.controller;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -47,8 +46,6 @@ public class RedisSyncConcurrentCountController {
     private RedisSyncConcurrentCountService redisSyncConcurrentCountService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
-    @Autowired
-    private Executor executor;
 
     /**
      * 测试分布式场景下的多线程并发计数, 会自动广播给其他端口的本地服务, 模拟分布式不同服务实例并发调用的情况.
@@ -68,7 +65,7 @@ public class RedisSyncConcurrentCountController {
 
         // 然后多线程并发调用计数
         for (long i = 0; i < num; i++) {
-            executor.execute(() -> redisSyncConcurrentCountService.concurrentAdd());
+            redisSyncConcurrentCountService.concurrentAdd();
         }
     }
 
