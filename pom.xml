@@ -6,7 +6,7 @@
 	<version>1.0.0</version>
 	
 	<name>distbtsync</name>
-	<description>用于分布式协调同步场景中的轻量级、方便的SDK(based on Spring framework).</description>
+	<description>A lightweight and convenient SDK for synchronization in distributed scenarios based on Spring framework.</description>
 	<url>https://github.com/ayoungbear/distbtsync</url>
 	
 	<developers>
