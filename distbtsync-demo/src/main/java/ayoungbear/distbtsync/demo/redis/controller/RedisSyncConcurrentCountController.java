@@ -77,7 +77,7 @@ public class RedisSyncConcurrentCountController {
      */
     @GetMapping("verify-concurrent-count")
     public void verifyConcurrentCount() {
-        // 获取计数值
+        // 获取真实值
         long actualNum = RedisSyncTestUtils.getLongValue(stringRedisTemplate, RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
                 RedisSyncTestUtils.CONCURRENT_COUNT_ACTUAL_KEY);
         // 获取计数值
@@ -87,7 +87,7 @@ public class RedisSyncConcurrentCountController {
     }
 
     /**
-     * 清除校验分布式并发计数的结果.
+     * 清除分布式并发计数的结果.
      */
     @GetMapping("clear-concurrent-count")
     public void clearConcurrentCount() {
