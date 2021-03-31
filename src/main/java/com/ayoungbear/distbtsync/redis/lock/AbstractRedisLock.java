@@ -37,7 +37,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     protected static final String SUCCESS = "1";
     protected static final String TRY_ACQUIRE_SUCCESS = "OK";
 
-    private static final String CHANNEL_PREFIX = "distbtsync_redis_lock_";
+    private static final String CHANNEL_PREFIX = "__distbtsync_redis_lock_";
 
     private static final String TRY_ACQUIRE_SCRIPT = "if (redis.call('exists', KEYS[1]) == 0) or (redis.call('hexists', KEYS[1], ARGV[1])) == 1 then " +
                                                          "redis.call('hincrby', KEYS[1], ARGV[1], 1); " +
