@@ -109,13 +109,13 @@ public class GetRequestPublishConfiguration {
                 params.put(key, parameter);
             });
             // 避免再次广播
-            boolean isPublish = "1".equals(request.getParameter("publish"));
+            boolean isPublish = "1".equals(request.getParameter("isPublish"));
             if (!isPublish && !StringUtils.isAllEmpty(ports)) {
                 // 转发请求给各个端口
-                logger.info("Get request publish servletPath={} params={}", servletPath, params);
+                logger.info("GET request publish servletPath={} params={}", servletPath, params);
                 for (String port : ports) {
                     if (!StringUtils.equals(localPort, port)) {
-                        String uri = "http://localhost:" + port + contextPath + servletPath + "?publish=1&"
+                        String uri = "http://localhost:" + port + contextPath + servletPath + "?isPublish=1&"
                                 + stringJoiner.toString();
                         publishService.publishGet(uri);
                     }
@@ -195,7 +195,7 @@ public class GetRequestPublishConfiguration {
     }
 
     /**
-     * 用于标记请求是否需要广播到其他本地服务端口.
+     * 用于标记请求是否需要广播到其他本地服务(localhost).
      * 各本地服务端口通过 {@code spring.application.publish.ports} 来配置.
      * 
      * @author yangzexiong

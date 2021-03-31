@@ -15,6 +15,8 @@
  */
 package ayoungbear.distbtsync.demo.redis;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -42,12 +44,33 @@ public abstract class BaseRedisSupport {
     }
 
     /**
+     * hash类型获取数值, 没有则初始化为0.
+     * @param key
+     * @param hashkey
+     * @return
+     */
+    public BigDecimal getAsBigDecimal(String key, String hashkey) {
+        return Optional.ofNullable(stringRedisTemplate.opsForHash().get(key, hashkey))
+                .map((v) -> new BigDecimal(String.valueOf(v))).orElse(BigDecimal.ZERO);
+    }
+
+    /**
      * 自增.
      * @param key
      * @param hashkey
      * @param num
      */
     public long increment(String key, String hashkey, long num) {
+        return stringRedisTemplate.opsForHash().increment(key, hashkey, num);
+    }
+
+    /**
+     * 自增.
+     * @param key
+     * @param hashkey
+     * @param num
+     */
+    public double increment(String key, String hashkey, double num) {
         return stringRedisTemplate.opsForHash().increment(key, hashkey, num);
     }
 
@@ -60,12 +83,12 @@ public abstract class BaseRedisSupport {
     }
 
     /**
-     * 删除指定key.
-     * @param key
+     * 删除指定keys.
+     * @param keys
      * @return
      */
-    public boolean delete(String key) {
-        return stringRedisTemplate.delete(key);
+    public Long delete(String... keys) {
+        return stringRedisTemplate.delete(Arrays.asList(keys));
     }
 
     @Autowired

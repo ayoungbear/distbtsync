@@ -35,7 +35,7 @@ import ayoungbear.distbtsync.demo.redis.service.RedisSyncConcurrentCountService;
  * @author yangzexiong
  */
 @RestController
-@RequestMapping("redis-sync")
+@RequestMapping("redis-sync/concurrent-count")
 public class RedisSyncConcurrentCountController extends BaseRedisSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisSyncConcurrentCountController.class);
@@ -48,8 +48,8 @@ public class RedisSyncConcurrentCountController extends BaseRedisSupport {
      * @param num 增加的数值
      */
     @Publish
-    @GetMapping("concurrent-count")
-    public void concurrentCount(long num) {
+    @GetMapping("test")
+    public void testConcurrentCount(long num) {
         logger.info("concurrentCount num={}", num);
         if (num <= 0) {
             return;
@@ -68,7 +68,7 @@ public class RedisSyncConcurrentCountController extends BaseRedisSupport {
     /**
      * 校验分布式并发计数的结果是否准确, 以验证分布式场景下的并发控制情况.
      */
-    @GetMapping("verify-concurrent-count")
+    @GetMapping("verify")
     public void verifyConcurrentCount() {
         // 获取真实值
         long actualNum = getLongValue(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
@@ -83,7 +83,7 @@ public class RedisSyncConcurrentCountController extends BaseRedisSupport {
     /**
      * 清除分布式并发计数的结果.
      */
-    @GetMapping("clear-concurrent-count")
+    @GetMapping("clear")
     public void clearConcurrentCount() {
         logger.info("clearConcurrentCount clear={}", delete(RedisSyncTestUtils.CONCURRENT_COUNT_KEY));
     }

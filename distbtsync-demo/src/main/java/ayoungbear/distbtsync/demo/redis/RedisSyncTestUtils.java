@@ -42,6 +42,6 @@ public class RedisSyncTestUtils {
     /**
      * 测试分布式场景下账户资金数据保存 计算值用的key hashkey为各账户号
      */
-    public static final String ACCOUNT_AMOUNT_PREFIX_AMOUNT_KEY = "testAccountAmount_amount";
+    public static final String ACCOUNT_AMOUNT_PREFIX_COUNTT_KEY = "testAccountAmount_count";
 
 }
