@@ -88,7 +88,7 @@ public class GetRequestPublishConfiguration {
 
         private String localPort;
 
-        @Value("${spring.application.publish.ports}")
+        @Value("${spring.application.publish.ports:}")
         private String[] ports;
 
         @Value("${server.servlet.context-path}")
@@ -110,7 +110,7 @@ public class GetRequestPublishConfiguration {
             });
             // 避免再次广播
             boolean isPublish = "1".equals(request.getParameter("publish"));
-            if (!isPublish) {
+            if (!isPublish && !StringUtils.isAllEmpty(ports)) {
                 // 转发请求给各个端口
                 logger.info("Get request publish servletPath={} params={}", servletPath, params);
                 for (String port : ports) {

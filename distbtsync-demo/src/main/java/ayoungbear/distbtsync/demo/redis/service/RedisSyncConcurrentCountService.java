@@ -26,7 +26,7 @@ import ayoungbear.distbtsync.demo.redis.BaseRedisSupport;
 import ayoungbear.distbtsync.demo.redis.RedisSyncTestUtils;
 
 /**
- * 测试 @{@link RedisSync} 注解分布式并发计数场景.
+ * 测试 @{@link RedisSync} 注解分布式并发计数场景, 这里使用 redis 来作为数据库.
  * 
  * @author yangzexiong
  */
@@ -36,7 +36,7 @@ public class RedisSyncConcurrentCountService extends BaseRedisSupport {
     private static final Logger logger = LoggerFactory.getLogger(RedisSyncConcurrentCountService.class);
 
     /**
-     * 异步调用方式, 测试分布式场景下的并发计数, 这里使用 redis 来作为数据库.
+     * 异步调用方式, 测试分布式场景下的并发计数.
      * 这里同步使用的 key 是 SpEL 表达式, 最终解析的结果为 'test_RedisSyncConcurrentCountService_concurrentAdd'.
      */
     @Async

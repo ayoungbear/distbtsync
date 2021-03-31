@@ -24,15 +24,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ayoungbear.distbtsync.spring.redis.RedisSync;
-
 import ayoungbear.distbtsync.demo.config.GetRequestPublishConfiguration.Publish;
 import ayoungbear.distbtsync.demo.redis.BaseRedisSupport;
 import ayoungbear.distbtsync.demo.redis.RedisSyncTestUtils;
 import ayoungbear.distbtsync.demo.redis.service.RedisSyncConcurrentCountService;
 
 /**
- * 测试 @{@link RedisSync} 注解功能请求触发接口.
+ * 模拟测试分布式场景下并发计数请求触发接口.
  * 
  * @author yangzexiong
  */
@@ -45,7 +43,8 @@ public class RedisSyncConcurrentCountController extends BaseRedisSupport {
     private RedisSyncConcurrentCountService redisSyncConcurrentCountService;
 
     /**
-     * 测试分布式场景下的多线程并发计数, 会自动广播给其他端口的本地服务, 模拟分布式不同服务实例并发调用的情况.
+     * 测试分布式场景下的多线程并发计数.
+     * 会自动广播给其他端口的本地服务, 模拟分布式不同服务实例并发调用的情况.
      * @param num 增加的数值
      */
     @Publish
