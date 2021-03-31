@@ -17,13 +17,12 @@ package ayoungbear.distbtsync.demo.redis.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.ayoungbear.distbtsync.spring.redis.RedisSync;
 
+import ayoungbear.distbtsync.demo.redis.BaseRedisSupport;
 import ayoungbear.distbtsync.demo.redis.RedisSyncTestUtils;
 
 /**
@@ -32,11 +31,9 @@ import ayoungbear.distbtsync.demo.redis.RedisSyncTestUtils;
  * @author yangzexiong
  */
 @Service
-public class RedisSyncConcurrentCountService {
+public class RedisSyncConcurrentCountService extends BaseRedisSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisSyncConcurrentCountService.class);
-
-    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 异步调用方式, 测试分布式场景下的并发计数, 这里使用 redis 来作为数据库.
@@ -46,7 +43,7 @@ public class RedisSyncConcurrentCountService {
     @RedisSync("test_#{#targetClass.getSimpleName()}_#{#methodName}")
     public void concurrentAdd() {
         // 先获取数据
-        long count = RedisSyncTestUtils.getLongValue(stringRedisTemplate, RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
+        long count = getLongValue(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
                 RedisSyncTestUtils.CONCURRENT_COUNT_COUNT_KEY);
         // 自增
         count = count + 1;
@@ -54,11 +51,6 @@ public class RedisSyncConcurrentCountService {
         // 保存回数据库
         stringRedisTemplate.opsForHash().put(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
                 RedisSyncTestUtils.CONCURRENT_COUNT_COUNT_KEY, String.valueOf(count));
-    }
-
-    @Autowired
-    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
-        this.stringRedisTemplate = stringRedisTemplate;
     }
 
 }

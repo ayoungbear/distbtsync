@@ -15,12 +15,11 @@
  */
 package ayoungbear.distbtsync.demo.redis.controller;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ayoungbear.distbtsync.spring.redis.RedisSync;
 
 import ayoungbear.distbtsync.demo.config.GetRequestPublishConfiguration.Publish;
+import ayoungbear.distbtsync.demo.redis.BaseRedisSupport;
 import ayoungbear.distbtsync.demo.redis.RedisSyncTestUtils;
 import ayoungbear.distbtsync.demo.redis.service.RedisSyncConcurrentCountService;
 
@@ -38,13 +38,11 @@ import ayoungbear.distbtsync.demo.redis.service.RedisSyncConcurrentCountService;
  */
 @RestController
 @RequestMapping("redis-sync")
-public class RedisSyncConcurrentCountController {
+public class RedisSyncConcurrentCountController extends BaseRedisSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisSyncConcurrentCountController.class);
 
     private RedisSyncConcurrentCountService redisSyncConcurrentCountService;
-
-    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 测试分布式场景下的多线程并发计数, 会自动广播给其他端口的本地服务, 模拟分布式不同服务实例并发调用的情况.
@@ -58,10 +56,10 @@ public class RedisSyncConcurrentCountController {
             return;
         }
         // 先记录真实值
-        stringRedisTemplate.opsForHash().increment(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
+        increment(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
                 RedisSyncTestUtils.CONCURRENT_COUNT_ACTUAL_KEY, num);
-        stringRedisTemplate.expire(RedisSyncTestUtils.CONCURRENT_COUNT_KEY, 1, TimeUnit.DAYS);
-
+        expire(RedisSyncTestUtils.CONCURRENT_COUNT_KEY);
+        Executors.newSingleThreadExecutor();
         // 然后多线程并发调用计数
         for (long i = 0; i < num; i++) {
             redisSyncConcurrentCountService.concurrentAdd();
@@ -74,12 +72,13 @@ public class RedisSyncConcurrentCountController {
     @GetMapping("verify-concurrent-count")
     public void verifyConcurrentCount() {
         // 获取真实值
-        long actualNum = RedisSyncTestUtils.getLongValue(stringRedisTemplate, RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
+        long actualNum = getLongValue(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
                 RedisSyncTestUtils.CONCURRENT_COUNT_ACTUAL_KEY);
         // 获取计数值
-        long countNum = RedisSyncTestUtils.getLongValue(stringRedisTemplate, RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
+        long countNum = getLongValue(RedisSyncTestUtils.CONCURRENT_COUNT_KEY,
                 RedisSyncTestUtils.CONCURRENT_COUNT_COUNT_KEY);
-        logger.info("verifyConcurrentCount actualNum={} countNum={}", actualNum, countNum);
+        logger.info("verifyConcurrentCount equals={} actualNum={} countNum={}", actualNum == countNum, actualNum,
+                countNum);
     }
 
     /**
@@ -87,18 +86,12 @@ public class RedisSyncConcurrentCountController {
      */
     @GetMapping("clear-concurrent-count")
     public void clearConcurrentCount() {
-        logger.info("clearConcurrentCount clear={}",
-                stringRedisTemplate.delete(RedisSyncTestUtils.CONCURRENT_COUNT_KEY));
+        logger.info("clearConcurrentCount clear={}", delete(RedisSyncTestUtils.CONCURRENT_COUNT_KEY));
     }
 
     @Autowired
     public void setRedisSyncConcurrentCountService(RedisSyncConcurrentCountService redisSyncConcurrentCountService) {
         this.redisSyncConcurrentCountService = redisSyncConcurrentCountService;
-    }
-
-    @Autowired
-    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
-        this.stringRedisTemplate = stringRedisTemplate;
     }
 
 }

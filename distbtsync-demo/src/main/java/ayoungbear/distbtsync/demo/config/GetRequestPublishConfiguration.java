@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.ClassFilter;
@@ -113,7 +114,7 @@ public class GetRequestPublishConfiguration {
                 // 转发请求给各个端口
                 logger.info("Get request publish servletPath={} params={}", servletPath, params);
                 for (String port : ports) {
-                    if (!localPort.equals(port)) {
+                    if (!StringUtils.equals(localPort, port)) {
                         String uri = "http://localhost:" + port + contextPath + servletPath + "?publish=1&"
                                 + stringJoiner.toString();
                         publishService.publishGet(uri);

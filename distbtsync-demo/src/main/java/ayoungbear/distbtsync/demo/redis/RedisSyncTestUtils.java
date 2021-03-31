@@ -15,10 +15,6 @@
  */
 package ayoungbear.distbtsync.demo.redis;
 
-import java.util.Optional;
-
-import org.springframework.data.redis.core.StringRedisTemplate;
-
 /**
  * 测试用工具类.
  * 
@@ -40,15 +36,12 @@ public class RedisSyncTestUtils {
     public static final String CONCURRENT_COUNT_COUNT_KEY = "countNum";
 
     /**
-     * hash类型获取数值, 没有则为 0.
-     * @param stringRedisTemplate
-     * @param key
-     * @param hashkey
-     * @return
+     * 测试分布式场景下账户资金数据保存 真实值用的key hashkey为各账户号
      */
-    public static long getLongValue(StringRedisTemplate stringRedisTemplate, String key, String hashkey) {
-        return Optional.ofNullable(stringRedisTemplate.opsForHash().get(key, hashkey))
-                .map((v) -> Long.valueOf(String.valueOf(v))).orElse(0L);
-    }
+    public static final String ACCOUNT_AMOUNT_PREFIX_ACTUAL_KEY = "testAccountAmount_actual";
+    /**
+     * 测试分布式场景下账户资金数据保存 计算值用的key hashkey为各账户号
+     */
+    public static final String ACCOUNT_AMOUNT_PREFIX_AMOUNT_KEY = "testAccountAmount_amount";
 
 }
