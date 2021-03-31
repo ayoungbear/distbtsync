@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.Objects;
 
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -37,13 +37,13 @@ import com.ayoungbear.distbtsync.redis.lock.sub.RedisSubscription;
  */
 public class RedisTemplateCommandsAdapter implements RedisLockCommands {
 
-    private RedisTemplate<String, String> redisTemplate;
+    private StringRedisTemplate redisTemplate;
 
     private RedisConnectionFactory connectionFactory;
 
     private StringRedisSerializer serializer = new StringRedisSerializer();
 
-    public RedisTemplateCommandsAdapter(RedisTemplate<String, String> redisTemplate) {
+    public RedisTemplateCommandsAdapter(StringRedisTemplate redisTemplate) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "RedisTemplate must not be null");
         this.connectionFactory = Objects.requireNonNull(redisTemplate.getConnectionFactory(),
                 "RedisConnectionFactory is required");

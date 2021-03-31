@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -37,7 +37,7 @@ public abstract class BaseSpringRedisTest extends BaseRedisTest {
     protected RedisConnectionFactory redisConnectionFactory;
 
     @Autowired
-    protected RedisTemplate<String, String> stringRedisTemplate;
+    protected StringRedisTemplate stringRedisTemplate;
 
     protected RedisConnectionCommandsAdapter getRedisConnectionCommandsAdapter() {
         return new RedisConnectionCommandsAdapter(redisConnectionFactory);
