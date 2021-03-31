@@ -82,17 +82,7 @@ public class GetRequestPublishConfiguration {
 
     @SuppressWarnings("serial")
     public static class GetRequestPublishAdvisor extends AbstractPointcutAdvisor
-            implements Pointcut, MethodInterceptor, ApplicationListener<WebServerInitializedEvent> {
-
-        private static final Logger logger = LoggerFactory.getLogger(GetRequestPublishAdvisor.class);
-
-        private String localPort;
-
-        @Value("${spring.application.publish.ports:}")
-        private String[] ports;
-
-        @Value("${server.servlet.context-path}")
-        private String contextPath;
+            implements Pointcut, MethodInterceptor {
 
         private PublishService publishService;
 
@@ -100,27 +90,7 @@ public class GetRequestPublishConfiguration {
         public Object invoke(MethodInvocation arg0) throws Throwable {
             HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
                     .getRequest();
-            String servletPath = request.getServletPath();
-            Map<String, String> params = new HashMap<String, String>();
-            StringJoiner stringJoiner = new StringJoiner("&");
-            request.getParameterMap().keySet().stream().forEach((key) -> {
-                String parameter = request.getParameter(key);
-                stringJoiner.add(key + "=" + parameter);
-                params.put(key, parameter);
-            });
-            // 避免再次广播
-            boolean isPublish = "1".equals(request.getParameter("isPublish"));
-            if (!isPublish && !StringUtils.isAllEmpty(ports)) {
-                // 转发请求给各个端口
-                logger.info("GET request publish servletPath={} params={}", servletPath, params);
-                for (String port : ports) {
-                    if (!StringUtils.equals(localPort, port)) {
-                        String uri = "http://localhost:" + port + contextPath + servletPath + "?isPublish=1&"
-                                + stringJoiner.toString();
-                        publishService.publishGet(uri);
-                    }
-                }
-            }
+            publishService.publishGet(request);
             return arg0.proceed();
         }
 
@@ -159,12 +129,6 @@ public class GetRequestPublishConfiguration {
         }
 
         @Override
-        public void onApplicationEvent(WebServerInitializedEvent event) {
-            this.localPort = String.valueOf(event.getWebServer().getPort());
-            logger.info("local server port={}", localPort);
-        }
-
-        @Override
         public int getOrder() {
             return Ordered.LOWEST_PRECEDENCE;
         }
@@ -181,17 +145,56 @@ public class GetRequestPublishConfiguration {
      * 
      * @author yangzexiong
      */
-    public static class PublishService {
+    public static class PublishService implements ApplicationListener<WebServerInitializedEvent> {
 
         private static final Logger logger = LoggerFactory.getLogger(PublishService.class);
+
+        private String localPort;
+
+        @Value("${spring.application.publish.ports:}")
+        private String[] ports;
+
+        @Value("${server.servlet.context-path}")
+        private String contextPath;
 
         private RestTemplate restTemplate = new RestTemplate();
 
         @Async
-        public void publishGet(String uri) {
-            logger.info("GET URI={}", uri);
-            restTemplate.getForObject(uri, Object.class);
+        public void publishGet(HttpServletRequest request) {
+            // 避免再次广播
+            boolean isPublish = "1".equals(request.getParameter("isPublish"));
+            if (!isPublish && !StringUtils.isAllEmpty(ports)) {
+                String servletPath = request.getServletPath();
+                Map<String, String> params = new HashMap<String, String>();
+                StringJoiner stringJoiner = new StringJoiner("&");
+                request.getParameterMap().keySet().stream().forEach((key) -> {
+                    String parameter = request.getParameter(key);
+                    stringJoiner.add(key + "=" + parameter);
+                    params.put(key, parameter);
+                });
+                // 转发请求给各个端口
+                logger.info("GET request publish servletPath={} params={}", servletPath, params);
+                for (String port : ports) {
+                    if (!StringUtils.equals(localPort, port)) {
+                        String uri = "http://localhost:" + port + contextPath + servletPath + "?isPublish=1&"
+                                + stringJoiner.toString();
+                        logger.info("GET URI={}", uri);
+                        try {
+                            restTemplate.getForObject(uri, Object.class);
+                        } catch (Exception e) {
+                            logger.warn("publishGet error", e);
+                        }
+                    }
+                }
+            }
         }
+
+        @Override
+        public void onApplicationEvent(WebServerInitializedEvent event) {
+            this.localPort = String.valueOf(event.getWebServer().getPort());
+            logger.info("local server port={}", localPort);
+        }
+
     }
 
     /**

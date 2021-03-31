@@ -31,7 +31,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * @author yangzexiong
  */
 @Configuration
-@EnableAsync
+@EnableAsync(proxyTargetClass = true)
 public class AsyncConfiguration implements AsyncConfigurer {
 
     @Value("${thread.pool.size}")
