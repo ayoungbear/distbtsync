@@ -27,6 +27,10 @@ public class SyncFailureException extends RuntimeException {
         super(msg);
     }
 
+    public SyncFailureException(Throwable cause) {
+        super(cause);
+    }
+
     public SyncFailureException(String msg, Throwable cause) {
         super(msg, cause);
     }

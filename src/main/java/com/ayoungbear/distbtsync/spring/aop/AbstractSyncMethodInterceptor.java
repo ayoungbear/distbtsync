@@ -19,8 +19,6 @@ import java.util.function.Supplier;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.lang.Nullable;
 import org.springframework.util.function.SingletonSupplier;
@@ -41,8 +39,6 @@ import com.ayoungbear.distbtsync.spring.support.DefaultSyncFailureHandler;
  * @see DefaultSyncFailureHandler
  */
 public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor, Ordered {
-
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private SingletonSupplier<SyncMethodFailureHandler> defaultHandlerSupplier;
 
@@ -82,26 +78,35 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
         SingletonSupplier<SyncMethodFailureHandler> handlerSupplier = SingletonSupplier
                 .of(() -> getSyncFailureHandler(methodInvoker));
 
-        // 方法调用前执行同步
-        if (!acquire(sync)) {
-            // 同步执行失败后续处理
-            handlerSupplier.obtain().handleAcquireFailure(sync, methodInvoker);
-        }
-
-        try {
-            // 执行调用, 如果同步失败时处理器没有抛异常终止, 那么将会直接执行方法调用
-            return methodInvoker.invoke();
-
-        } finally {
-            if (sync.isHeld()) {
-                // 方法调用后执行释放操作
-                if (!release(sync)) {
-                    handlerSupplier.obtain().handleReleaseFailure(sync, methodInvoker);
-                }
-            } else {
-                // 方法调用结束后发现未持有互斥资源
-                handlerSupplier.obtain().handleHeldFailure(sync, methodInvoker);
+        try{
+            // 方法调用前执行同步
+            if (!acquire(sync)) {
+                // 同步执行失败后续处理
+                handlerSupplier.obtain().handleAcquireFailure(sync, methodInvoker);
             }
+    
+            try {
+                // 执行调用, 如果同步失败时处理器没有抛异常终止, 那么将会直接执行方法调用
+                return methodInvoker.invoke();
+    
+            } finally {
+                if (sync.isHeld()) {
+                    // 方法调用后执行释放操作
+                    if (!release(sync)) {
+                        handlerSupplier.obtain().handleReleaseFailure(sync, methodInvoker);
+                    }
+                } else {
+                    // 方法调用结束后发现未持有互斥资源
+                    handlerSupplier.obtain().handleHeldFailure(sync, methodInvoker);
+                }
+            }
+
+        } catch (Throwable t) {
+            SyncMethodFailureHandler handler = handlerSupplier.get();
+            if (handler != null) {
+                handler.handleError(t, methodInvoker);
+            }
+            throw t;
         }
     }
 
@@ -157,10 +162,7 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
         try {
             return synchronizer.acquire();
         } catch (Exception ae) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Synchronizer acquire encountered an error", ae);
-            }
-            return false;
+            throw ae;
         }
     }
 
@@ -173,10 +175,7 @@ public abstract class AbstractSyncMethodInterceptor implements MethodInterceptor
         try {
             return synchronizer.release();
         } catch (Exception re) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Synchronizer release encountered an error", re);
-            }
-            return false;
+            throw re;
         }
     }
 

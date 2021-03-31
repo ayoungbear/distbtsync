@@ -49,4 +49,13 @@ public interface SyncMethodFailureHandler {
      */
     void handleHeldFailure(Synchronizer synchronizer, MethodInvoker methodInvoker);
 
+    /**
+     * 在同步方法调用过程中出现异常情况时进行相应处理.
+     * @param t
+     * @param methodInvoker
+     */
+    default void handleError(Throwable t, MethodInvoker methodInvoker) {
+        throw new SyncFailureException(t);
+    }
+
 }
