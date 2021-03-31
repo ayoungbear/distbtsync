@@ -36,7 +36,6 @@ public class RedisSyncConcurrentCountService {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisSyncConcurrentCountService.class);
 
-    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
     /**
@@ -57,5 +56,9 @@ public class RedisSyncConcurrentCountService {
                 RedisSyncTestUtils.CONCURRENT_COUNT_COUNT_KEY, String.valueOf(count));
     }
 
+    @Autowired
+    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
+    }
 
 }

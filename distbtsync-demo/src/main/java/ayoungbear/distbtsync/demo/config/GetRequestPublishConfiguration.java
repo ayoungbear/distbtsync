@@ -93,7 +93,6 @@ public class GetRequestPublishConfiguration {
         @Value("${server.servlet.context-path}")
         private String contextPath;
 
-        @Autowired
         private PublishService publishService;
 
         @Override
@@ -167,6 +166,11 @@ public class GetRequestPublishConfiguration {
         @Override
         public int getOrder() {
             return Ordered.LOWEST_PRECEDENCE;
+        }
+
+        @Autowired
+        public void setPublishService(PublishService publishService) {
+            this.publishService = publishService;
         }
 
     }

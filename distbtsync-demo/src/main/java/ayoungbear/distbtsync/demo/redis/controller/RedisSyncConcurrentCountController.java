@@ -42,9 +42,8 @@ public class RedisSyncConcurrentCountController {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisSyncConcurrentCountController.class);
 
-    @Autowired
     private RedisSyncConcurrentCountService redisSyncConcurrentCountService;
-    @Autowired
+
     private StringRedisTemplate stringRedisTemplate;
 
     /**
@@ -90,6 +89,16 @@ public class RedisSyncConcurrentCountController {
     public void clearConcurrentCount() {
         logger.info("clearConcurrentCount clear={}",
                 stringRedisTemplate.delete(RedisSyncTestUtils.CONCURRENT_COUNT_KEY));
+    }
+
+    @Autowired
+    public void setRedisSyncConcurrentCountService(RedisSyncConcurrentCountService redisSyncConcurrentCountService) {
+        this.redisSyncConcurrentCountService = redisSyncConcurrentCountService;
+    }
+
+    @Autowired
+    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
 }
