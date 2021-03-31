@@ -205,7 +205,7 @@ public class RedisBasedLock extends AbstractRedisLock {
     public int getHoldCount() {
         String identifier = getSourceIdentifier();
         if (identifier != null) {
-            return doGetHoldCount(getSourceIdentifier());
+            return doGetHoldCount(identifier);
         }
         return 0;
     }
@@ -590,9 +590,7 @@ public class RedisBasedLock extends AbstractRedisLock {
          * @param message
          */
         private void onReleaseMessage(String message) {
-            if (getKey().equals(message)) {
-                signal();
-            }
+            signal();
         }
 
         private boolean isSubWorkerAlive() {
