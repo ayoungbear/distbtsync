@@ -52,6 +52,10 @@ public class RedisSyncAccountAmountController extends BaseRedisSupport {
      * 账户数量.
      */
     private int accountNum = 10;
+    /**
+     * 随机账户号起始值.
+     */
+    private int accountIdBegin = 1000000;
 
     /**
      * 测试分布式场景下的多线程并发给各账户增加资金数. 
@@ -62,7 +66,6 @@ public class RedisSyncAccountAmountController extends BaseRedisSupport {
     @GetMapping("test")
     public void testAccountAmount(long spin) {
         logger.info("addAccountAmount accountNum={} spin={}", accountNum, spin);
-        int accountIdBegin = 1000000;
         for (int i = 0; i < spin; i++) {
             // 随机选择账户
             String accountId = String.valueOf(RandomUtils.nextInt(accountIdBegin, accountIdBegin + accountNum + 1));
@@ -78,7 +81,6 @@ public class RedisSyncAccountAmountController extends BaseRedisSupport {
                 redisSyncAccountAmountService.addAccountAmount(new Account(accountId, amount));
             }
         }
-
     }
 
     /**
