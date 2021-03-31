@@ -46,7 +46,7 @@ public class RedisSyncAccountAmountService extends BaseRedisSupport {
      * 异步调用方式, 给指定的账户号 id 增加 amount 金额数, 这里直接接收账户号.
      * 这里根据账户号来进行同步, 不同账户之间不会互相影响, 但对同一账户的操作将会同步.
      * 这里同步使用的 key 是 SpEL 表达式, 最终解析的结果为 'test_addAccountAmount_{id}'. 
-     * 这里账户号也可以换成 '#p1' 或者 '#a1' 或者 '#args[0]', 例如 "test_#{#methodName}_#{#a1}"
+     * 这里账户号也可以换成 '#p0' 或者 '#a0' 或者 '#args[0]', 例如 "test_#{#methodName}_#{#a1}"
      * @param accountId
      * @param amount
      */
@@ -67,7 +67,7 @@ public class RedisSyncAccountAmountService extends BaseRedisSupport {
      * 异步调用方式, 给指定的账户号 id 增加 amount 金额数, 这里接收账户对象作为参数.
      * 这里根据账户号来进行同步, 不同账户之间不会互相影响, 但对同一账户的操作将会同步.
      * 这里同步使用的 key 是 SpEL 表达式, 最终解析的结果为 'test_addAccountAmount_{id}'. 
-     * 这里账户号也可以换成 "test_#{#methodName}_#{#account.getAccountId()}"
+     * 这里账户号也可以换成 '#account.getAccountId()', 例如 "test_#{#methodName}_#{#account.getAccountId()}"
      * @param accountId
      * @param amount
      */
