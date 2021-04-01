@@ -78,7 +78,7 @@ lock.forceUnlock();
 ```
 更多信息请参考 code 或 apidocs 。
 
-PS：已对该分布式锁进行了单元测试与稳定性测试（例如模拟分布式场景 1000 个线程并发计数等），根据目前多项测试情况看，性能上是要优于目前流行的 [redisson](https://github.com/redisson/redisson) 分布式锁的，但是锁的功能和类型没有 redisson lock 丰富。
+PS：已对该分布式锁进行了单元测试与稳定性测试（例如模拟分布式场景 1000 个线程并发计数等），根据现有的测试情况看，性能上是要优于目前流行的 [redisson](https://github.com/redisson/redisson) 分布式锁的，但是锁的功能和类型没有 RedissonLock 丰富。
 
 ## Spring
 在 Spring framwork 的基础上提供了同步相关的便利功能，如分布式同步标记注解，以及一些便利模板类等。
