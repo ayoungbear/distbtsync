@@ -117,13 +117,13 @@ public class MyRedisSyncConfiguration {
 注解可指定 redis 分布式锁所需要的相关信息，包括使用的 key、过期时间等，可通过表达式根据上下文指定。如果未指定将使用默认的配置。该注解隐式支持“继承”，可利用此特点配置组合注解或者模板注解（例如 @RequestMapping 与 @GetMapping）等。
 
 相关属性说明：
-- name：同步使用的标识，即为 redis 分布式锁所使用的键值 key。默认使用的锁 key 为方法的全限定名。
-- leaseTime：redis 分布式锁的过期时间，小于等于 0 表示不设置过期时间，锁状态将会一直存在直到解锁。默认的过期时间（ms）可通过 ayoungbear.distbtsync.spring.redis.defaultLeaseTime 项进行配置，默认无过期时间。
-- waitTime：加锁时的阻塞等待超时时间，小于 0 表示持续阻塞直到加锁成功，等于 0 表示只会尝试加锁一次，大于 0 表示最大的阻塞等待时间。默认的等待超时时间（ms）可通过 ayoungbear.distbtsync.spring.redis.defaultWaitTime 项进行配置，默认为持续阻塞直到加锁成功。
-- timeUnit：时间单位，默认为毫秒（ms）。
-- handlerQualifier：指定同步失败异常处理器 [SyncMethodFailureHandler](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/spring/SyncMethodFailureHandler.java)  的限定名，实例需要注册到 Spring 上下文中，同步失败时将会根据此名从上下文获取指定的处理器来进行相应的异常处理。
+- <b>name</b>：同步使用的标识，即为 redis 分布式锁所使用的键值 key。默认使用的锁 key 为方法的全限定名。
+- <b>leaseTime</b>：redis 分布式锁的过期时间，小于等于 0 表示不设置过期时间，锁状态将会一直存在直到解锁。默认的过期时间（ms）可通过 <b>ayoungbear.distbtsync.spring.redis.defaultLeaseTime</b> 来进行配置，默认无过期时间。
+- <b>waitTime</b>：加锁时的阻塞等待超时时间，小于 0 表示持续阻塞直到加锁成功，等于 0 表示只会尝试加锁一次，大于 0 表示最大的阻塞等待时间。默认的等待超时时间（ms）可通过 <b>ayoungbear.distbtsync.spring.redis.defaultWaitTime</b> 来进行配置，默认为持续阻塞直到加锁成功。
+- <b>timeUnit</b>：时间单位，默认为毫秒（ms）。
+- <b>handlerQualifier</b>：指定同步失败异常处理器 [SyncMethodFailureHandler](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/spring/SyncMethodFailureHandler.java)  的限定名，实例需要注册到 Spring 上下文中，同步失败时将会根据此名从上下文获取指定的处理器来进行相应的异常处理。
 
-在需要同步调用的方法上标记该注解：
+注解使用说明：
 ```java
 // 不指定则使用默认值 key="public void x.x.x.x.syncAdd(java.lang.String)"
 @RedisSync
