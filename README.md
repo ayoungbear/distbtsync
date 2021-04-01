@@ -45,14 +45,17 @@ How to use 如何使用：
 
 1). 获取分布式锁
 ```java
-// 使用jedis客户端
-JedisClusterCommandsAdapter commands = new JedisClusterCommandsAdapter((JedisCluster) jedisCluster); 
-// 使用lettuce客户端
-LettuceClusterClientCommandsAdapter commands = new LettuceClusterClientCommandsAdapter((RedisClusterClient) client); 
-// 使用RedisConnection、RedisConnectionFactory
-RedisConnectionCommandsAdapter commands = new RedisConnectionCommandsAdapter((RedisConnectionFactory) connectionFactory); 
-// 使用RedisTemplate
-RedisTemplateCommandsAdapter commands = new RedisTemplateCommandsAdapter((StringRedisTemplate) redisTemplate); 
+// 使用jedis客户端 (redis.clients.jedis.JedisCluster)
+RedisLockCommands commands = new JedisClusterCommandsAdapter(jedisCluster); 
+
+// 使用lettuce客户端 (io.lettuce.core.cluster.RedisClusterClient)
+RedisLockCommands commands = new LettuceClusterClientCommandsAdapter(redisClusterClient); 
+
+// 使用RedisConnection (org.springframework.data.redis.connection.RedisConnectionFactory)
+RedisLockCommands commands = new RedisConnectionCommandsAdapter(redisConnectionFactory); 
+
+// 使用RedisTemplate (org.springframework.data.redis.core.StringRedisTemplate)
+RedisLockCommands commands = new RedisTemplateCommandsAdapter(stringRedisTemplate); 
 
 // 创建分布式锁对象
 RedisLock lock = new RedisBasedLock((String) key, commands); 
