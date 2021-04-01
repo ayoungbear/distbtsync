@@ -1,7 +1,7 @@
 # Distbtsync
 Hellow! 
 
-这是一款在分布式场景中用于协调同步的轻量级SDK，提供了分布式锁实现、分布式同步注解等功能，方便我们在分布式场景下进行同步控制等操作。
+这是一款在分布式场景中用于协调同步的轻量级SDK，提供了分布式锁实现、集成 Spring 框架提供分布式同步注解等功能，方便我们在分布式场景下进行同步控制等操作。
 
 ## 集成
 - JDK 1.8+
@@ -155,7 +155,7 @@ public void syncMethod(String param){...};
 @RedisSync(leaseTime = "${myLeaseTime}", waitTime = "${myWaitTime}")
 public void syncMethod(String param){...};
 
-// 通过参数指定过期和超时时间，解析后的结果必须是数值
+// 通过参数指定过期和超时时间
 @RedisSync(leaseTime = "#{#leaseTime}", waitTime = "#{#waitTime}")
 public void syncMethod(long leaseTime, long waitTime){...};
 ```
