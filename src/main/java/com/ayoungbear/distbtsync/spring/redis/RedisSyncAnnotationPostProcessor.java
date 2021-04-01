@@ -81,7 +81,12 @@ public class RedisSyncAnnotationPostProcessor extends AbstractBeanFactoryAwareAd
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) {
         Object object = super.postProcessAfterInitialization(bean, beanName);
-        postProcessSyncAnnotation(bean);
+        try {
+            postProcessSyncAnnotationAttributes(bean, beanName);
+        } catch (Exception ex) {
+            throw new BeanCreationException(beanName,
+                    "Process sync annotation attributes encountered an error", ex);
+        }
         return object;
     }
 
@@ -90,8 +95,9 @@ public class RedisSyncAnnotationPostProcessor extends AbstractBeanFactoryAwareAd
      * 默认缺少配置信息会出现异常, 可提前发现配置缺失问题.
      * 但是依赖于方法执行上下文实时信息的情况无法提前校验, 如果有问题需要触发调用才能发现.
      * @param bean
+     * @param beanName
      */
-    private void postProcessSyncAnnotation(Object bean) {
+    private void postProcessSyncAnnotationAttributes(Object bean, String beanName) {
         Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
         if (isEligible(targetClass)) {
             if (hasAnnotation(targetClass)) {
@@ -138,7 +144,7 @@ public class RedisSyncAnnotationPostProcessor extends AbstractBeanFactoryAwareAd
             }
 
         } catch (Exception ex) {
-            throw new BeanCreationException(getClass().getName(),
+            throw new IllegalStateException(
                     "Encountered invalid sync attribute '" + redisSync + "' of element '" + element + "'", ex);
         }
     }
