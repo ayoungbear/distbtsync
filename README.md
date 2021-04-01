@@ -32,7 +32,7 @@ distbtsync-x.y.z.jar
 提供了分布式锁的相关实现，并扩展了功能。
 
 ### Redis lock
-基于 [redis](https://github.com/redis/redis)、Pub/Sub、LUA、AQS 实现的可重入分布式锁 [RedisBasedLock](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/redis/lock/RedisBasedLock.java)，有公平（相对）和非公平两种模式，提供了阻塞、超时、可中断等加锁方式以及其他便利方法。
+基于 [redis](https://github.com/redis/redis)、Pub/Sub、Lua、AQS 实现的可重入分布式锁 [RedisBasedLock](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/redis/lock/RedisBasedLock.java)，有公平（相对）和非公平两种模式，提供了阻塞、超时、可中断等加锁方式以及其他便利方法。
 
 该分布式锁不依赖于其他组件，可以根据项目所使用的 redis 客户端进行灵活配置，甚至可以自行实现而不依赖已有客户端，只需要实现定义的基础操作接口 [RedisLockCommands](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/redis/lock/RedisLockCommands.java)。
 接口需实现的功能有：
@@ -78,7 +78,7 @@ lock.forceUnlock();
 ```
 更多信息请参考 code 或 apidocs 。
 
-PS：已对该分布式锁进行了单元测试与稳定性测试（例如模拟分布式场景 1000 个线程并发计数等），根据现有的测试情况看，性能上是要优于目前流行的 [redisson](https://github.com/redisson/redisson) 分布式锁的，但是锁的功能和类型没有 RedissonLock 丰富。
+PS：已对该分布式锁进行了单元测试与稳定性测试（例如模拟分布式场景 1000 个线程并发计数等），根据现有的测试情况看，性能上是要优于目前流行的 [redisson](https://github.com/redisson/redisson) 分布式锁的，但是锁的功能和类型没有 redisson 提供的丰富。
 
 ## Spring
 在 Spring framwork 的基础上提供了同步相关的便利功能，如分布式同步标记注解，以及一些便利模板类等。
