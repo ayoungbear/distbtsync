@@ -87,7 +87,7 @@ PS：已对该分布式锁进行了单元测试与稳定性测试（例如模拟
 
 基于 redis 分布式锁、Spring AOP 实现的同步标记注解功能组件。
 
-注解支持方法或者类/接口级别的标记，用来实现分布式并发场景下方法级别的同步调用，还支持基于 Spring 容器和方法调用上下文的 SpEL（Spring Expression Language）表达式解析，实现 redis 分布式锁所用键值与过期时间等属性的灵活配置，让分布式场景下的同步方法调用控制更加方便。
+注解支持方法或者类/接口级别的标记，用来实现分布式并发场景下方法级别的同步调用（类似分布式 synchronized 的功能），还支持基于 Spring 容器和方法调用上下文的 SpEL（Spring Expression Language）表达式解析，实现 redis 分布式锁所用键值与过期时间等属性的灵活配置，让分布式场景下的同步方法调用控制更加方便。
 
 How to use 如何使用：
 
@@ -109,6 +109,9 @@ public class MyRedisSyncConfiguration {
     <version>x.y.z</version>
 </dependency>
 ```
+该功能需要 [RedisSynchronizerProvider](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/spring/redis/RedisSynchronizerProvider.java) 的支持，如果需要自动配置请在 Spring 上下文中注册 <b>org.springframework.data.redis.connection.RedisConnectionFactory</b> 实例。
+
+建议直接使用 <b>spring-boot-starter-data-redis</b> 和 <b>distbtsync-redis-spring-boot-starter</b> 自动配置，这样仅需配置 redis 相关信息即可启用该功能。
 
 2). 使用 redis 同步注解功能
 
