@@ -111,7 +111,7 @@ public class MyRedisSyncConfiguration {
 ```
 该功能需要 [RedisSynchronizerProvider](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/spring/redis/RedisSynchronizerProvider.java) 的支持，如果需要自动配置请在 Spring 上下文中注册 <b>org.springframework.data.redis.connection.RedisConnectionFactory</b> 实例。
 
-建议直接使用 <b>spring-boot-starter-data-redis</b> 和 <b>distbtsync-redis-spring-boot-starter</b> 自动配置，这样仅需配置 redis 相关信息即可启用该功能。
+建议直接使用 <b>spring-boot-starter-data-redis</b> 和 <b>distbtsync-redis-spring-boot-starter</b> 自动配置，这样仅需配置 redis 信息即可启用该功能。
 
 2). 使用 redis 同步注解功能
 
