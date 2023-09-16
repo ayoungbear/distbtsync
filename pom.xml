@@ -1,93 +1,103 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	
-	<groupId>ayoungbear</groupId>
-	<artifactId>distbtsync</artifactId>
-	<version>1.0.0</version>
-	
-	<name>distbtsync</name>
-	<description>A lightweight and convenient SDK for synchronization in distributed scenarios based on Spring framework.</description>
-	<url>https://github.com/ayoungbear/distbtsync</url>
-	
-	<developers>
-	    <developer>
-	        <id>ayoungbear</id>
-	        <name>yangzexiong</name>
-	    </developer>
-	</developers>
-	
-	<licenses>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ayoungbear</groupId>
+    <artifactId>distbtsync</artifactId>
+    <version>1.0.0</version>
+
+    <name>distbtsync</name>
+    <description>A lightweight and convenient SDK for synchronization in distributed scenarios based
+        on Spring framework.
+    </description>
+    <url>https://github.com/ayoungbear/distbtsync</url>
+
+    <developers>
+        <developer>
+            <id>ayoungbear</id>
+            <name>yangzexiong</name>
+        </developer>
+    </developers>
+
+    <licenses>
         <license>
             <name>Apache v2</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
         </license>
     </licenses>
-	
-	<properties>
+
+    <properties>
         <source.version>1.8</source.version>
         <test.source.version>1.8</test.source.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>2.3.0.RELEASE</spring.version>
-        <lettuce.version>5.3.0.RELEASE</lettuce.version> 
+        <lettuce.version>5.3.0.RELEASE</lettuce.version>
         <jedis.version>3.3.0</jedis.version>
     </properties>
-    
+
     <dependencies>
-    
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>${jedis.version}</version>
             <optional>true</optional>
         </dependency>
-        
+
         <dependency>
-			<groupId>io.lettuce</groupId>
-			<artifactId>lettuce-core</artifactId>
-			<version>${lettuce.version}</version>
-			<optional>true</optional>
-		</dependency>
-        
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+            <version>${lettuce.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
             <version>${spring.version}</version>
             <optional>true</optional>
         </dependency>
-        
+
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
             <optional>true</optional>
         </dependency>
-        
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${spring.version}</version>
             <scope>test</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
-        
+
         <dependency>
-           <groupId>org.redisson</groupId>
-           <artifactId>redisson</artifactId>
-           <version>3.13.1</version>
-           <scope>test</scope>
-        </dependency>  
-        
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.13.1</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
-    
+
     <build>
         <plugins>
-        
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -97,13 +107,14 @@
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <configuration> 
-                    <encoding>${project.build.sourceEncoding}</encoding> 
-                </configuration> 
+                <version>3.2.0</version>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -112,29 +123,29 @@
                     </execution>
                 </executions>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
                 <executions>
-                       <execution>
-                         <id>attach-javadocs</id>
-                         <goals>
-                             <goal>jar</goal>
-                         </goals>
-                       </execution>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
                 </executions>
                 <configuration>
-                	<level>public</level>
+                    <level>public</level>
                     <additionalJOption>-Xdoclint:none</additionalJOption>
                     <charset>UTF-8</charset>
                     <encoding>UTF-8</encoding>
                     <docencoding>UTF-8</docencoding>
                 </configuration>
             </plugin>
-            
+
         </plugins>
     </build>
-    
+
 </project>

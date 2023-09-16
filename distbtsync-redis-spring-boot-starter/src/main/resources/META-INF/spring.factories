@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.ayoungbear.distbtsync.spring.starter.redis.RedisSyncAutoConfiguration
+com.github.ayoungbear.distbtsync.spring.starter.redis.RedisSyncAutoConfiguration
