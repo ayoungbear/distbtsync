@@ -70,7 +70,7 @@ public class RedisBasedLock extends AbstractRedisLock {
      * 创建基于 redis 的分布式锁, 所有根据此方法创建的使用相同 {@code key} 的锁对象,
      * 都使用相同的共享阻塞队列, 并且锁为公平锁.
      * 
-     * @see Sync#syncQueueCache
+     * @see Sync#SYNC_QUEUE_CACHE
      * @param key
      * @param commands
      * @return
@@ -84,7 +84,7 @@ public class RedisBasedLock extends AbstractRedisLock {
      * @return
      */
     public static int getSharedSyncCacheSize() {
-        return Sync.syncQueueCache.size();
+        return Sync.SYNC_QUEUE_CACHE.size();
     }
 
     /**
@@ -92,7 +92,7 @@ public class RedisBasedLock extends AbstractRedisLock {
      * @return
      */
     public static Set<String> getSharedSyncCacheKeySet() {
-        return Sync.syncQueueCache.keySet().stream().map((sync) -> sync.key).collect(Collectors.toSet());
+        return Sync.SYNC_QUEUE_CACHE.keySet().stream().map((sync) -> sync.key).collect(Collectors.toSet());
     }
 
     @Override
@@ -274,7 +274,7 @@ public class RedisBasedLock extends AbstractRedisLock {
                         }
                     }
                     // 当剩余时间过小则继续自旋不再阻塞
-                    if (nanosTtl < 0 || nanosTtl > spinForBlockTimeoutThreshold) {
+                    if (nanosTtl < 0 || nanosTtl > SPIN_FOR_BLOCK_TIMEOUT_THRESHOLD) {
                         if (sync.activeSubWorker(commands, channel)) {
                             sync.await(interruptible, nanosTtl);
                         }
@@ -360,9 +360,9 @@ public class RedisBasedLock extends AbstractRedisLock {
          * 共享阻塞队列缓存, 利用 {@link WeakHashMap} 和 {@link WeakReference} 弱引用的特性,
          * 在内存不足时将无用的共享队列清除, 这里将回收功能交给了 GC.
          * 共享阻塞队列是公平模式的, 这么做的目的是为了减少阻塞队列对象的创建和无用的操作, 因为只能有一个对象加锁成功.
-         * 可通过 {@link #getSharedSync(String)} 来获取共享阻塞队列.
+         * 可通过 {@link #newShared(String)} 来获取共享阻塞队列.
          */
-        private static final WeakHashMap<Sync, WeakReference<Sync>> syncQueueCache = new WeakHashMap<>(256);
+        private static final WeakHashMap<Sync, WeakReference<Sync>> SYNC_QUEUE_CACHE = new WeakHashMap<>(256);
 
         private Semaphore semaphore;
 
@@ -391,11 +391,11 @@ public class RedisBasedLock extends AbstractRedisLock {
         public static Sync newShared(String key) {
             Sync sync = getRedisSyncLockQueueFromCache(key);
             if (sync == null) {
-                synchronized (syncQueueCache) {
+                synchronized (SYNC_QUEUE_CACHE) {
                     sync = getRedisSyncLockQueueFromCache(key);
                     if (sync == null) {
                         sync = new Sync(key, true);
-                        syncQueueCache.put(sync, new WeakReference<Sync>(sync));
+                        SYNC_QUEUE_CACHE.put(sync, new WeakReference<Sync>(sync));
                     }
                 }
             }
@@ -403,7 +403,7 @@ public class RedisBasedLock extends AbstractRedisLock {
         }
 
         private static Sync getRedisSyncLockQueueFromCache(String key) {
-            WeakReference<Sync> syncRef = syncQueueCache.get(new Sync(key, true));
+            WeakReference<Sync> syncRef = SYNC_QUEUE_CACHE.get(new Sync(key, true));
             return syncRef == null ? null : syncRef.get();
         }
 

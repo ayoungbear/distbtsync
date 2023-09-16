@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.ayoungbear.distbtsync.redis.lock;
 
 import java.util.HashMap;
@@ -23,43 +24,44 @@ import java.util.UUID;
 /**
  * 基于 redis 的分布式锁基础类, 定义加锁的实际操作并提供了基础功能方法,
  * 同时还实现了一些接口方法.
- * 
+ *
  * @author yangzexiong
  * @see RedisLock
  */
 public abstract class AbstractRedisLock implements RedisLock {
-    
+
     protected static final int UNLIMIT_LEASE_TIME = 0;
     protected static final int NOT_WAIT_TIME = 0;
-    protected static final int spinForBlockTimeoutThreshold = 1000;
-    
+    protected static final int SPIN_FOR_BLOCK_TIMEOUT_THRESHOLD = 1000;
+
     protected static final String FAIL = "0";
     protected static final String SUCCESS = "1";
     protected static final String TRY_ACQUIRE_SUCCESS = "OK";
 
     private static final String CHANNEL_PREFIX = "__distbtsync_redis_lock_";
 
-    private static final String TRY_ACQUIRE_SCRIPT = "if (redis.call('exists', KEYS[1]) == 0) or (redis.call('hexists', KEYS[1], ARGV[1])) == 1 then " +
-                                                         "redis.call('hincrby', KEYS[1], ARGV[1], 1); " +
-                                                         "if (tonumber(ARGV[2]) > 0) then "+
-                                                             "redis.call('pexpire', KEYS[1], ARGV[2]); " +
-                                                         "end; "+
-                                                         "return 'OK'; " +
-                                                     "end; " +
-                                                     "return tostring(redis.call('pttl', KEYS[1])); ";
+    private static final String TRY_ACQUIRE_SCRIPT =
+            "if (redis.call('exists', KEYS[1]) == 0) or (redis.call('hexists', KEYS[1], ARGV[1])) == 1 then " +
+                    "redis.call('hincrby', KEYS[1], ARGV[1], 1); " +
+                    "if (tonumber(ARGV[2]) > 0) then " +
+                    "redis.call('pexpire', KEYS[1], ARGV[2]); " +
+                    "end; " +
+                    "return 'OK'; " +
+                    "end; " +
+                    "return tostring(redis.call('pttl', KEYS[1])); ";
 
     private static final String TRY_RELEASE_SCRIPT = "if (redis.call('hexists', KEYS[1], ARGV[1]) == 0) then " +
-                                                         "return '-1';" +
-                                                     "end; " +    
-                                                     "local counter = redis.call('hincrby', KEYS[1], ARGV[1], -1); " +
-                                                     "if (counter > 0) then "+    
-                                                         "return tostring(counter); " +
-                                                     "else " +
-                                                         "redis.call('del', KEYS[1]); " +
-                                                         "redis.call('publish', ARGV[2], KEYS[1]); " +
-                                                         "return '0'; " +
-                                                     "end; ";
-    
+            "return '-1';" +
+            "end; " +
+            "local counter = redis.call('hincrby', KEYS[1], ARGV[1], -1); " +
+            "if (counter > 0) then " +
+            "return tostring(counter); " +
+            "else " +
+            "redis.call('del', KEYS[1]); " +
+            "redis.call('publish', ARGV[2], KEYS[1]); " +
+            "return '0'; " +
+            "end; ";
+
     private static final String DELETE_SCRIPT = "return tostring(redis.call('del', KEYS[1])); ";
 
     private static final String IS_ACQUIRED_SCRIPT = "return tostring(redis.call('hexists', KEYS[1], ARGV[1])); ";
@@ -67,11 +69,11 @@ public abstract class AbstractRedisLock implements RedisLock {
     private static final String EXISTS_SCRIPT = "return tostring(redis.call('exists', KEYS[1])); ";
 
     private static final String HOLD_COUNT_SCRIPT = "return tostring(redis.call('hget', KEYS[1], ARGV[1])); ";
-    
+
     private static final String EXPIRED_SCRIPT = "if (redis.call('hexists', KEYS[1], ARGV[1]) == 0) then " +
-                                                     "return '0';" +
-                                                 "end; " +    
-                                                 "return tostring(redis.call('pexpire', KEYS[1], ARGV[2])); ";
+            "return '0';" +
+            "end; " +
+            "return tostring(redis.call('pexpire', KEYS[1], ARGV[2])); ";
 
     /**
      * 锁名称
@@ -90,7 +92,7 @@ public abstract class AbstractRedisLock implements RedisLock {
      */
     protected final RedisLockCommands commands;
 
-    /*
+    /**
      * 锁的失效时间本地缓存(ms)
      */
     private volatile long ttl = -1;
@@ -238,7 +240,7 @@ public abstract class AbstractRedisLock implements RedisLock {
     protected void removeIdentifier() {
         RedisLockIdentifierManager.removeIdentifier(key);
     }
-    
+
     /**
      * 执行加锁操作脚本命令.
      * @param script
@@ -271,7 +273,7 @@ public abstract class AbstractRedisLock implements RedisLock {
 
     /**
      * 用于管理各线程持有 redis 锁标识的类, 锁标识用于判断是否持有该锁.
-     * 
+     *
      * @author yangzexiong
      */
     private static class RedisLockIdentifierManager {
@@ -279,7 +281,7 @@ public abstract class AbstractRedisLock implements RedisLock {
         /**
          * 用于验证锁是否被自己持有的标识符
          */
-        private static final ThreadLocal<Map<String, String>> lockIdentifierManager = new ThreadLocal<>();
+        private static final ThreadLocal<Map<String, String>> LOCK_IDENTIFIER_MANAGER = new ThreadLocal<>();
 
         /**
          * 获取锁对应的标识符.
@@ -309,16 +311,16 @@ public abstract class AbstractRedisLock implements RedisLock {
             Map<String, String> localIdentifierMap = getLocalIdentifierMap();
             String identifier = localIdentifierMap.remove(key);
             if (localIdentifierMap.isEmpty()) {
-                lockIdentifierManager.remove();
+                LOCK_IDENTIFIER_MANAGER.remove();
             }
             return identifier;
         }
 
         private static Map<String, String> getLocalIdentifierMap() {
-            Map<String, String> localIdentifierMap = lockIdentifierManager.get();
+            Map<String, String> localIdentifierMap = LOCK_IDENTIFIER_MANAGER.get();
             if (localIdentifierMap == null) {
                 localIdentifierMap = new HashMap<>(8);
-                lockIdentifierManager.set(localIdentifierMap);
+                LOCK_IDENTIFIER_MANAGER.set(localIdentifierMap);
             }
             return localIdentifierMap;
         }

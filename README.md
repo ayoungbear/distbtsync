@@ -167,7 +167,9 @@ public void syncMethod(long leaseTime, long waitTime){...};
 ```
 另外还支持自定义配置的功能，例如自定义同步器、自定义表达式解析器、自定义默认的异常处理器，该功能可通过 [RedisSyncConfigurer](https://github.com/ayoungbear/distbtsync/blob/master/src/main/java/com/ayoungbear/distbtsync/spring/redis/RedisSyncConfigurer.java) 来配置实现。例如，可通过自定义同步器的方式来改变底层所使用的分布式锁实现，比如可更换为使用 redisson 的分布式锁（demo 工程有相关实现样例）。
 
-更多信息请参考 code 或 apidocs 。关于 SpEL 表达式的使用请参考 Spring 官方文档。
+更多信息请参考 code 或 apidocs 。
+
+关于 SpEL 表达式的使用请参考 [Spring 官方文档](https://docs.spring.io/spring-framework/docs/5.3.x/reference/html/core.html#expressions)。
 
 ## License
 
